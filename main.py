@@ -1,15 +1,14 @@
+from app.bot.bot import ChronicleBot
+from app.core.bootstrap import bootstrap
 from app.core.config import config
 
 
 def main():
-    print("=" * 50)
-    print(" Project Chronicle ")
-    print("=" * 50)
+    bootstrap()
 
-    print(f"Storage : {config.storage_dir}")
-    print(f"Database : {config.database_dir}")
+    bot = ChronicleBot()
 
-    print("\nBootstrap Success!")
+    bot.run(config.discord_bot_token)
 
 
 if __name__ == "__main__":
