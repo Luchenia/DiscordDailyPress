@@ -1,0 +1,9 @@
+discord.py==2.7.1
+discord-ext-voice-recv==0.5.2a179
+python-dotenv
+SQLAlchemy
+alembic
+pydantic
+apscheduler
+aiofiles
+orjson
