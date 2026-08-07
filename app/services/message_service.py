@@ -9,6 +9,8 @@ from app.repositories.message_history_repository import MessageHistoryRepository
 from app.repositories.message_delete_history_repository import MessageDeleteHistoryRepository
 from app.models.message_history import MessageHistory
 from app.models.message_delete_history import MessageDeleteHistory
+from app.services.language_service import LanguageService
+
 
 logger = get_logger(__name__)
 
@@ -20,6 +22,7 @@ class MessageService:
         self.repository = MessageRepository()
         self.history_repository = MessageHistoryRepository()
         self.delete_history_repository = MessageDeleteHistoryRepository()
+        self.language_service = LanguageService()
 
     def save(
         self,
@@ -43,6 +46,10 @@ class MessageService:
 
         # 3. DTO -> Entity
         entity = MessageMapper.dto_to_entity(dto)
+
+        entity.language = self.language_service.detect(
+            entity.content
+        )
 
         # 4. Save
         saved = self.repository.save(entity)
@@ -87,6 +94,10 @@ class MessageService:
         self.history_repository.save(history)
 
         entity.content = history.new_content
+
+        entity.language = self.language_service.detect(
+            entity.content
+        )
 
         entity.edited_at = history.edited_at
 
