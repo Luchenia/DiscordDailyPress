@@ -11,11 +11,29 @@ class MessageMapper:
     ) -> Message:
 
         return Message(
+            discord_message_id=dto.discord_message_id,
+
             guild_id=dto.guild_id,
+            guild_name=dto.guild_name,
+
             channel_id=dto.channel_id,
+            channel_name=dto.channel_name,
+
             author_id=dto.author_id,
-            author_name=dto.author_name,
+            author_username=dto.author_username,
+            author_display_name=dto.author_display_name,
+
+            is_bot=dto.is_bot,
+
             content=dto.content,
-            language=language,
+
+            language=language or "unknown",
+
+            has_attachment=dto.has_attachment,
+            attachment_count=dto.attachment_count,
+
+            reply_to_message_id=dto.reply_to_message_id,
+
             created_at=dto.created_at,
+            edited_at=dto.edited_at,
         )

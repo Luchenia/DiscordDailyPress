@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.pyc
 
 # =========================
 # Virtual Environment
@@ -42,3 +43,6 @@ storage/
 # Logs
 # =========================
 *.log
+
+# Database
+storage/database/*.db

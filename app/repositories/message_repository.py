@@ -1,10 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.database.session import SessionLocal
 from app.models.message import Message
 
-from sqlalchemy import func
-from sqlalchemy import select
 
 
 
@@ -54,3 +52,31 @@ class MessageRepository:
             session.commit()
 
             return True
+        
+    def update(
+        self,
+        message: Message,
+    ) -> Message:
+
+        with SessionLocal() as session:
+
+            merged = session.merge(message)
+
+            session.commit()
+
+            session.refresh(merged)
+
+            return merged
+
+    def get_by_discord_message_id(
+        self,
+        discord_message_id: int,
+    ) -> Message | None:
+
+        with SessionLocal() as session:
+
+            return session.scalar(
+                select(Message).where(
+                    Message.discord_message_id == discord_message_id
+                )
+            )
