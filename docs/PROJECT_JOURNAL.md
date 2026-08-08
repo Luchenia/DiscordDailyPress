@@ -172,3 +172,12 @@ AI는 가공된 데이터를 사용한다.
 ## 다음 Sprint
 
 Conversation Buffer 설계 및 구현
+
+
+### Technical Debt
+
+Discord.py의 on_message_edit는 캐시에 존재하는 메시지만 수정 이벤트를 받을 수 있다.
+
+Project Chronicle는 데이터 수집 신뢰성을 위해 향후
+on_raw_message_edit / on_raw_message_delete 기반으로
+Collector를 리팩터링할 예정이다.

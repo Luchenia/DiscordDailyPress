@@ -37,23 +37,19 @@ class ChronicleBot(commands.Bot):
         await self.process_commands(message)
 
 
-    async def on_message_edit(
+    async def on_raw_message_edit(
         self,
-        before: discord.Message,
-        after: discord.Message,
+        payload: discord.RawMessageUpdateEvent,
     ):
-
-        await self.message_collector.collect_edit(
-            before,
-            after,
+        await self.message_collector.collect_raw_edit(
+            payload,
         )
 
 
-    async def on_message_delete(
+    async def on_raw_message_delete(
         self,
-        message: discord.Message,
+        payload: discord.RawMessageDeleteEvent,
     ):
-
-        await self.message_collector.collect_delete(
-            message
+        await self.message_collector.collect_raw_delete(
+            payload,
         )

@@ -67,6 +67,10 @@ class MessageCollector:
         before: discord.Message,
         after: discord.Message,
     ):
+        logger.info(
+                    "collect_edit called: %s",
+                    after.id,
+                )
 
         if after.guild is None:
             return
@@ -121,3 +125,7 @@ class MessageCollector:
         self.service.delete(
             message.id
         )
+
+
+
+    
