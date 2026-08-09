@@ -80,3 +80,26 @@ class MessageRepository:
                     Message.discord_message_id == discord_message_id
                 )
             )
+
+    def update_language(
+        self,
+        discord_message_id: int,
+        language: str,
+    ) -> bool:
+
+        with SessionLocal() as session:
+
+            message = session.scalar(
+                select(Message).where(
+                    Message.discord_message_id == discord_message_id
+                )
+            )
+
+            if message is None:
+                return False
+
+            message.language = language
+
+            session.commit()
+
+            return True

@@ -127,5 +127,5 @@ class MessageCollector:
         )
 
 
-
-    
+    def start_cleanup(self):
+        self.service.conversation_buffer.start_cleanup()

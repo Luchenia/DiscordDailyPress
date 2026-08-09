@@ -10,6 +10,8 @@ from app.repositories.message_delete_history_repository import MessageDeleteHist
 from app.models.message_history import MessageHistory
 from app.models.message_delete_history import MessageDeleteHistory
 from app.services.language_service import LanguageService
+from app.services.conversation_buffer import ConversationBuffer
+from app.dto.conversation_result_dto import ConversationResultDTO
 
 
 logger = get_logger(__name__)
@@ -23,6 +25,10 @@ class MessageService:
         self.history_repository = MessageHistoryRepository()
         self.delete_history_repository = MessageDeleteHistoryRepository()
         self.language_service = LanguageService()
+
+        self.conversation_buffer = ConversationBuffer(
+            result_handler=self.process_conversation_result
+        )
 
     def save(
         self,
@@ -47,18 +53,22 @@ class MessageService:
         # 3. DTO -> Entity
         entity = MessageMapper.dto_to_entity(dto)
 
-        entity.language = self.language_service.detect(
-            entity.content
-        )
-
         # 4. Save
         saved = self.repository.save(entity)
 
-        # 5. Log
+        # 5. Conversation Buffer
+        session = self.conversation_buffer.add(dto)
+
+        # 6. Log
         logger.info(
             "Saved message #%s from %s",
             saved.id,
             saved.author_display_name,
+        )
+
+        logger.info(
+            "Conversation session: %s messages",
+            len(session.messages),
         )
 
         return saved
@@ -165,3 +175,49 @@ class MessageService:
         )
 
         return True
+
+    def update_language(
+        self,
+        result: ConversationResultDTO,
+    ) -> None:
+
+        success_count = 0
+        failure_count = 0
+
+        for discord_message_id in result.message_ids:
+
+            updated = self.repository.update_language(
+                discord_message_id=discord_message_id,
+                language=result.language,
+            )
+
+            if updated:
+                success_count += 1
+            else:
+                failure_count += 1
+
+                logger.warning(
+                    "Message %s not found while updating language.",
+                    discord_message_id,
+                )
+
+        logger.info(
+            "Language update completed: %s/%s messages updated to %s",
+            success_count,
+            len(result.message_ids),
+            result.language,
+        )
+
+
+    def process_conversation_result(
+        self,
+        result: ConversationResultDTO,
+    ) -> None:
+
+        self.update_language(result)
+
+        logger.info(
+            "Processed conversation: %s messages, language=%s",
+            len(result.message_ids),
+            result.language,
+        )

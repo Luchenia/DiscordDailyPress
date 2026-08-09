@@ -26,6 +26,8 @@ class ChronicleBot(commands.Bot):
     async def on_ready(self):
 
         print(f"Logged in as {self.user}")
+        
+        self.message_collector.start_cleanup()
 
     async def on_message(
         self,
