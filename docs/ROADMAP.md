@@ -724,3 +724,54 @@ AI 분석 결과 및 파생 메타데이터는
 
 이를 통해 AI Pipeline이 변경되더라도
 원본 Discord 데이터를 다시 분석할 수 있도록 한다.
+
+
+## Sprint 6.5 ✅
+
+- Conversation Buffer
+- Conversation Session
+- 사용자 + 채널별 Conversation 관리
+- 5초 inactivity 기반 Session 종료
+- Background Cleanup Loop
+- ConversationResultDTO
+- Message ID 추적
+- Conversation 단위 Language Detection
+- Language Post Processing
+- Message.language 사후 업데이트
+- Conversation Buffer 테스트
+- 실제 Discord 통합 테스트
+
+## Analysis Foundation ✅
+
+- AnalysisScopeDTO
+- AnalysisMessageDTO
+- AnalysisDatasetDTO
+- AnalysisDatasetMetadataDTO
+- AnalysisService
+- AnalysisScope 기반 데이터 조회
+- StatisticsService
+- 작성자별 통계
+- 채널별 통계
+- 일별 활동량 통계
+- 시간대별 활동량 통계
+- 언어 분포 통계
+- 실제 SQLite 데이터 분석 검증
+
+## Sprint 7
+
+- 다국어 Conversation 처리
+- Language Distribution
+- 대표 언어 / 혼용 언어 정책
+- Translation Service
+
+## Sprint 8
+
+- Topic Detection
+
+## Sprint 9
+
+- Summarization
+
+## Sprint 10
+
+- Newspaper Generator

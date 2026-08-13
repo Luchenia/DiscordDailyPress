@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 
 from app.database.session import SessionLocal
 from app.models.message import Message
+from datetime import datetime
 
 
 
@@ -103,3 +104,24 @@ class MessageRepository:
             session.commit()
 
             return True
+
+    def get_by_analysis_scope(
+        self,
+        guild_id: int,
+        channel_ids: list[int],
+        start_at: datetime,
+        end_at: datetime,
+    ) -> list[Message]:
+
+        with SessionLocal() as session:
+
+            result = session.scalars(
+                select(Message).where(
+                    Message.guild_id == guild_id,
+                    Message.channel_id.in_(channel_ids),
+                    Message.created_at >= start_at,
+                    Message.created_at < end_at,
+                )
+            )
+
+            return list(result)
