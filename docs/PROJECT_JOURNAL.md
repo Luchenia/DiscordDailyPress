@@ -850,3 +850,453 @@ Message Collection
 
 다음 단계에서는 이 언어 데이터를 기반으로
 Translation Service 설계를 시작한다.
+
+
+
+# 1. PROJECT_JOURNAL.md 기록
+
+이번 스프린트 마지막에 아래 내용을 추가하자.
+
+```markdown
+## Sprint 6.5 / Analysis Foundation 완료
+
+### 구현 완료
+
+- Conversation Buffer
+- Conversation Session
+- 사용자 + 채널별 Conversation 관리
+- 5초 inactivity 기반 Session 종료
+- Background Cleanup Loop
+- ConversationResultDTO
+- Message ID 추적
+- Conversation 단위 Language Detection
+- Language Post Processing
+- Message.language 사후 업데이트
+- Conversation Buffer 테스트
+- 실제 Discord 통합 테스트
+
+### Analysis Foundation
+
+- AnalysisScopeDTO
+- AnalysisMessageDTO
+- AnalysisDatasetDTO
+- AnalysisDatasetMetadataDTO
+- AnalysisService
+- AnalysisScope 기반 Message 조회
+- StatisticsService
+- 작성자별 메시지 통계
+- 채널별 메시지 통계
+- 일별 메시지 활동량
+- 시간대별 메시지 활동량
+- 언어 분포 통계
+
+### 테스트
+
+- 전체 pytest 26 PASS
+- 실제 SQLite 데이터 기반 AnalysisService 실행
+- 실제 SQLite 데이터 96개 분석 성공
+- 작성자 2명 집계 성공
+- 채널 1개 집계 성공
+- 일별 활동량 집계 성공
+- 시간대별 활동량 집계 성공
+- 언어 분포 계산 성공
+
+### 실제 DB 검증 중 발견된 문제
+
+실제 분석 과정에서 `messages.id=10`의 `edited_at` 값이
+`0`으로 저장되어 SQLAlchemy DateTime 변환 오류가 발생했다.
+
+원인을 확인한 뒤 기존 DB를 백업하고 해당 잘못된 nullable
+datetime 값을 `NULL`로 복구했다.
+
+- DB backup 생성
+- `edited_at=0` 데이터 확인
+- `edited_at=0 → NULL` 복구
+- 복구 후 ORM 조회 정상
+- 전체 테스트 26 PASS
+- 실제 분석 정상 완료
+
+### 검증 결과
+
+실제 Discord에서 수집된 Raw Message Data를 SQLite에서 조회하여
+AnalysisScope → AnalysisDataset → StatisticsResult까지 연결하는
+분석 파이프라인이 정상적으로 동작함을 확인했다.
+
+현재 Chronicle은 수집된 원본 데이터를 지정된 범위에 따라 조회하고
+기본적인 통계 분석을 수행할 수 있는 상태다.
+
+### 다음 단계
+
+Sprint 7에서는 다국어 Conversation 처리와 분석 결과의 언어 정책을
+설계한다.
+
+- Language Distribution
+- 대표 언어 / 혼용 언어 정책
+- Translation Service
+- 다국어 분석 결과 처리
+```
+# Sprint 6.7 — Analysis Command & Statistics Expansion
+
+## 목표
+
+기존에 구축한 Analysis Foundation을 실제 Discord Slash Command에서 사용할 수 있도록 확장한다.
+
+사용자가 Discord에서 분석 기간을 선택하고, 지정된 범위의 데이터를 분석하여 통계 결과를 확인할 수 있는 `/분석` 명령어를 구축한다.
+
+## 완료
+
+### Analysis Request
+
+- AnalysisRequestDTO 구현
+- Guild ID 기반 분석 요청 구성
+- 분석 시작 시간 및 종료 시간 관리
+- 출력 언어 관리
+
+### Analysis Period
+
+분석 기간을 사용자가 선택할 수 있도록 분석 기간 처리 구조를 구축하였다.
+
+지원 기간:
+
+- 오늘
+- 이번 주
+- 이번 달
+- 올해
+- 직접 입력
+
+구현:
+
+- AnalysisPeriodService
+- 기간별 시작 및 종료 시간 계산
+- 사용자 지정 기간 처리
+
+### Analysis Scope
+
+분석 요청으로부터 실제 분석 대상 범위를 결정하는 AnalysisScopeResolver를 구현하였다.
+
+구조:
+
+AnalysisRequest
+→ AnalysisScopeResolver
+→ AnalysisScope
+
+AnalysisScope에는 다음 정보가 포함된다.
+
+- Guild ID
+- 분석 대상 Channel ID
+- 분석 시작 시간
+- 분석 종료 시간
+
+### Analysis Dataset
+
+분석 범위에 해당하는 Message Data를 조회하여 분석 전용 Dataset으로 변환하는 구조를 구축하였다.
+
+구조:
+
+AnalysisScope
+→ Message Data
+→ AnalysisDataset
+
+AnalysisDataset에는 다음 정보가 포함된다.
+
+- Analysis Message
+- Message Metadata
+- Message Count
+- Author Count
+- Channel Count
+- Language Distribution
+
+원본 Raw Message Data는 변경하지 않고 분석을 위한 별도의 Dataset을 생성한다.
+
+## Statistics Service
+
+AnalysisDataset을 기반으로 통계 정보를 계산하는 StatisticsService를 확장하였다.
+
+### 기본 통계
+
+- 전체 메시지 수
+- 전체 작성자 수
+- 전체 채널 수
+- 작성자별 메시지 수
+- 채널별 메시지 수
+- 일별 메시지 활동량
+- 시간대별 메시지 활동량
+- 언어 분포
+
+### 추가 분석 통계
+
+#### 평균 메시지 길이
+
+전체 메시지의 문자 수를 기반으로 평균 메시지 길이를 계산한다.
+
+계산 방식:
+
+전체 메시지 문자 수 ÷ 전체 메시지 수
+
+메시지가 없는 경우 `0.0`으로 처리한다.
+
+#### 가장 활발한 시간대
+
+시간대별 메시지 수를 비교하여 가장 많은 메시지가 발생한 시간을 계산한다.
+
+구조:
+
+hourly_activity
+→ 가장 많은 메시지 수를 가진 hour
+→ peak_activity_hour
+
+분석 대상 메시지가 없는 경우 `None`으로 처리한다.
+
+#### 가장 활발한 날짜
+
+일별 메시지 활동량을 비교하여 가장 많은 메시지가 발생한 날짜를 계산한다.
+
+구조:
+
+daily_activity
+→ 가장 많은 메시지 수를 가진 날짜
+→ peak_activity_date
+
+동일한 메시지 수를 가진 날짜가 여러 개 존재하는 경우에도 결정적인 결과가 나오도록 처리하였다.
+
+메시지가 없는 경우:
+
+- peak_activity_date = None
+- peak_activity_date_count = 0
+
+## Statistics Result
+
+StatisticsResultDTO에 추가 분석 결과를 반영하였다.
+
+추가 필드:
+
+- average_message_length
+- peak_activity_hour
+- peak_activity_date
+- peak_activity_date_count
+
+이를 통해 단순 집계 결과뿐 아니라 분석 대상의 활동 특성을 확인할 수 있는 기본적인 분석 지표를 제공할 수 있게 되었다.
+
+## Analysis Service Integration
+
+AnalysisService에서 전체 분석 Pipeline을 연결하였다.
+
+구조:
+
+AnalysisRequest
+→ AnalysisScopeResolver
+→ AnalysisScope
+→ AnalysisDataset
+→ StatisticsService
+→ StatisticsResult
+
+Dataset 생성 과정에서 오류가 발생하는 경우 StatisticsService를 호출하지 않도록 실패 흐름도 테스트하였다.
+
+# Discord Analysis Command
+
+## `/분석`
+
+분석 기능을 실제 Discord Slash Command와 연결하였다.
+
+사용자는 Discord에서 `/분석` 명령어를 실행하여 분석 가능한 데이터를 확인하고 원하는 분석 기간을 선택할 수 있다.
+
+## 분석 기간 선택
+
+Slash Command의 분석 기간 Parameter를 구축하였다.
+
+지원되는 기간:
+
+- 오늘
+- 이번 주
+- 이번 달
+- 올해
+- 직접 입력
+
+직접 입력을 선택한 경우 Custom Period Modal을 통해 시작일과 종료일을 입력할 수 있도록 구성하였다.
+
+## Analysis Result Embed
+
+분석 결과를 Discord Embed 형태로 출력하도록 구현하였다.
+
+분석 결과에서 다음 통계 정보를 사용할 수 있다.
+
+- 전체 메시지 수
+- 작성자 수
+- 채널 수
+- 주요 작성자
+- 채널별 활동량
+- 일별 활동량
+- 시간대별 활동량
+- 언어 분포
+- 평균 메시지 길이
+- 가장 활발한 시간대
+- 가장 활발한 날짜
+
+## Collection Channel Integration
+
+분석 대상 채널을 별도로 관리하기 위한 Collection Channel 구조를 구축하였다.
+
+완료:
+
+- CollectionChannel Model
+- CollectionChannelRepository
+- 활성화된 분석 대상 채널 조회
+- Channel ID 기반 분석 범위 구성
+
+이를 통해 Chronicle이 모든 Discord 채널을 무조건 분석하는 것이 아니라 지정된 수집 및 분석 대상 채널을 기준으로 데이터를 처리할 수 있는 기반을 구축하였다.
+
+# Multilingual Analysis Command
+
+Discord Interaction Locale을 기반으로 분석 명령어의 사용자 인터페이스를 다국어로 처리할 수 있는 구조를 구축하였다.
+
+다국어 처리 대상:
+
+- Command 이름
+- Command 설명
+- Parameter 이름
+- Parameter 설명
+- 분석 기간 선택지
+- Custom Period Modal
+- 분석 결과
+- 오류 메시지
+
+Localization 구조를 별도 모듈로 분리하여 Analysis Command 내부에 언어별 문자열을 직접 하드코딩하지 않도록 구성하였다.
+
+# Testing
+
+Analysis 기능 확장 과정에서 각 계층별 자동화 테스트를 추가하였다.
+
+추가 테스트:
+
+- Analysis Request 테스트
+- Analysis Period Service 테스트
+- Analysis Scope Resolver 테스트
+- Analysis Service Flow 테스트
+- Analysis Integration 테스트
+- Collection Channel 테스트
+- Collection Channel Repository 테스트
+- Analysis Command 테스트
+- Statistics 확장 테스트
+
+## Statistics Test
+
+StatisticsService에서 다음 항목을 검증하였다.
+
+- 작성자별 메시지 수
+- 채널별 메시지 수
+- 일별 활동량
+- 시간대별 활동량
+- 언어 분포
+- 평균 메시지 길이
+- 가장 활발한 시간대
+- 가장 활발한 날짜
+- 빈 Dataset 처리
+- 동일한 활동량을 가진 날짜 처리
+
+## Analysis Command Test
+
+Discord Analysis Command에 대해 다음 동작을 검증하였다.
+
+- Command Parameter 생성
+- 분석 기간 선택
+- 기간 Autocomplete
+- 다국어 Autocomplete
+- Custom Period Modal
+- 직접 입력 처리
+- 분석 Service 호출
+- 분석 결과 Embed 생성
+- 분석 대상 채널이 없는 경우 처리
+- 분석 오류 처리
+
+# Final Test
+
+최종적으로 전체 프로젝트 테스트를 실행하였다.
+
+결과:
+
+100 passed
+
+기존 기능과 새롭게 추가된 Analysis 기능이 서로 정상적으로 연동되는 것을 확인하였다.
+
+# Discord Integration Test
+
+자동화 테스트뿐만 아니라 실제 Discord 환경에서 `/분석` 명령어를 실행하여 분석 결과가 정상적으로 출력되는 것을 확인하였다.
+
+전체 흐름:
+
+Discord
+→ `/분석`
+→ AnalysisRequest
+→ AnalysisScope
+→ AnalysisDataset
+→ StatisticsService
+→ StatisticsResult
+→ Discord Embed
+
+전체 흐름이 실제 환경에서 정상적으로 동작함을 확인하였다.
+
+# 결과
+
+Project Chronicle은 이제 Discord에서 수집한 Raw Message Data를 단순히 저장하는 단계에서 벗어나 다음과 같은 실제 분석 Pipeline을 갖추게 되었다.
+
+Raw Data
+→ Analysis Scope
+→ Analysis Dataset
+→ Statistics
+→ Discord Analysis
+
+특히 `/분석` 명령어를 통해 수집된 Discord 데이터를 사용자가 직접 확인할 수 있게 되었다.
+
+이는 향후 Translation, Topic Detection, Summarization, Newspaper Generation으로 이어지는 AI Processing Pipeline을 검증하기 위한 중간 분석 계층으로 활용할 수 있다.
+
+# 설계 원칙
+
+기존 Project Chronicle의 Raw Data 원칙을 그대로 유지한다.
+
+Raw Message Content and Event History are Immutable.
+
+AI 분석 결과 및 파생 메타데이터는 후처리 과정에서 갱신할 수 있다.
+
+Analysis는 Raw Data를 변경하지 않고 분석 대상 범위에 따라 별도의 AnalysisDataset을 생성한다.
+
+따라서 향후 분석 로직이 변경되더라도 기존 Raw Data를 다시 분석할 수 있다.
+
+# 회고
+
+이번 Sprint에서는 기존에 구축한 Analysis Foundation을 실제 Discord Command로 확장하였다.
+
+AnalysisRequest, AnalysisScope, AnalysisDataset, StatisticsService를 연결하고 기간 선택 및 Custom Period 기능을 구현하여 사용자가 Discord에서 직접 분석을 요청할 수 있도록 하였다.
+
+또한 작성자, 채널, 날짜, 시간대, 언어 분포와 같은 기본 통계뿐 아니라 다음과 같은 추가 분석 지표를 구현하였다.
+
+- 평균 메시지 길이
+- 가장 활발한 시간대
+- 가장 활발한 날짜
+
+마지막으로 전체 테스트 100개가 모두 통과하고 실제 Discord 환경에서도 `/분석` 명령어가 정상적으로 동작하는 것을 확인하였다.
+
+이를 통해 Project Chronicle은 다음 단계까지 실제 동작 가능한 데이터 처리 및 분석 기반을 확보하였다.
+
+Message Collection
+→ Conversation Processing
+→ Language Detection
+→ Analysis Foundation
+→ Discord Analysis
+
+# 다음 단계
+
+다음 단계에서는 기존 Roadmap에 정의된 Translation Service를 진행한다.
+
+주요 작업:
+
+- 다국어 Conversation 처리
+- Language Distribution 활용
+- 대표 언어 및 혼용 언어 정책
+- Translation Service 설계
+- Translation Data Model
+- 원본 데이터와 번역 데이터 분리
+- Conversation Translation
+- Translation 테스트
+- 실제 Discord Integration Test
+
+또한 향후 Voice Collector를 별도의 Data Collection 확장 영역으로 설계한다.

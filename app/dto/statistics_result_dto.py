@@ -55,3 +55,17 @@ class StatisticsResultDTO(BaseModel):
     hourly_activity: list[HourlyMessageCountDTO]
 
     language_distribution: dict[str, float]
+
+    # ==========================
+    # 추가 분석 통계
+    # ==========================
+
+    average_message_length: float
+
+    peak_activity_hour: int | None
+
+    peak_activity_date: str | None = None
+
+    peak_activity_date_count: int = 0
+
+    average_daily_message_count: float = 0.0

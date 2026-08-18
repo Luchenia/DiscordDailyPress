@@ -1,14 +1,17 @@
-from app.dto.analysis_scope_dto import AnalysisScopeDTO
-from app.models.message import Message
-from app.repositories.message_repository import MessageRepository
-from app.dto.analysis_message_dto import AnalysisMessageDTO
-
 from collections import Counter
 
+from app.dto.analysis_request_dto import AnalysisRequestDTO
+from app.dto.analysis_scope_dto import AnalysisScopeDTO
+from app.dto.analysis_message_dto import AnalysisMessageDTO
 from app.dto.analysis_dataset_dto import (
     AnalysisDatasetDTO,
     AnalysisDatasetMetadataDTO,
 )
+from app.dto.statistics_result_dto import StatisticsResultDTO
+from app.models.message import Message
+from app.repositories.message_repository import MessageRepository
+from app.services.analysis_scope_resolver import AnalysisScopeResolver
+from app.services.statistics_service import StatisticsService
 
 
 class AnalysisService:
@@ -16,8 +19,46 @@ class AnalysisService:
     분석 범위에 해당하는 데이터를 조회하는 Service
     """
 
-    def __init__(self):
-        self.repository = MessageRepository()
+    def __init__(
+        self,
+        repository: MessageRepository | None = None,
+        scope_resolver: AnalysisScopeResolver | None = None,
+        statistics_service: StatisticsService | None = None,
+    ):
+        self.repository = (
+            repository
+            if repository is not None
+            else MessageRepository()
+        )
+
+        self.scope_resolver = (
+            scope_resolver
+            if scope_resolver is not None
+            else AnalysisScopeResolver()
+        )
+
+        self.statistics_service = (
+            statistics_service
+            if statistics_service is not None
+            else StatisticsService()
+        )
+
+    def analyze(
+        self,
+        request: AnalysisRequestDTO,
+    ) -> StatisticsResultDTO:
+
+        scope = self.scope_resolver.resolve(
+            request,
+        )
+
+        dataset = self.build_dataset(
+            scope,
+        )
+
+        return self.statistics_service.analyze(
+            dataset,
+        )
 
     def get_messages(
         self,
@@ -52,7 +93,6 @@ class AnalysisService:
 
             created_at=message.created_at,
         )
-
 
     def build_dataset(
         self,

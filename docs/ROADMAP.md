@@ -757,6 +757,106 @@ AI 분석 결과 및 파생 메타데이터는
 - 언어 분포 통계
 - 실제 SQLite 데이터 분석 검증
 
+# Analysis Command — Discord Integration
+
+## 목표
+
+기존 Analysis Foundation을 실제 Discord Slash Command와 연결하여 사용자가 수집된 Discord 데이터를 직접 분석할 수 있도록 한다.
+
+## 완료
+
+- [x] AnalysisRequestDTO
+- [x] AnalysisPeriodService
+- [x] AnalysisScopeResolver
+- [x] AnalysisDataset 구성
+- [x] StatisticsService 확장
+- [x] 작성자별 통계
+- [x] 채널별 통계
+- [x] 일별 활동량
+- [x] 시간대별 활동량
+- [x] 언어 분포
+- [x] 평균 메시지 길이
+- [x] 가장 활발한 시간대
+- [x] 가장 활발한 날짜
+- [x] Collection Channel 관리
+- [x] `/분석` Slash Command
+- [x] 분석 기간 선택
+- [x] Custom Period Modal
+- [x] 다국어 UI 구조
+- [x] Analysis Result Embed
+- [x] Analysis Command 테스트
+- [x] 실제 Discord Integration Test
+
+## Testing
+
+최종 전체 테스트:
+
+100 passed
+
+실제 Discord 환경에서 `/분석` 명령어 실행 및 분석 결과 출력까지 검증하였다.
+
+## 결과
+
+Project Chronicle은 이제 다음과 같은 데이터 수집 및 분석 Pipeline을 실제 Discord 환경에서 실행할 수 있다.
+
+Discord
+→ Message Collection
+→ Raw Database
+→ Conversation Processing
+→ Language Detection
+→ Analysis Dataset
+→ Statistics
+→ `/분석`
+
+---
+
+# Analysis Foundation
+
+- [x] AnalysisScopeDTO
+- [x] AnalysisMessageDTO
+- [x] AnalysisDatasetDTO
+- [x] AnalysisDatasetMetadataDTO
+- [x] AnalysisService
+- [x] AnalysisScope 기반 데이터 조회
+- [x] StatisticsService
+- [x] 작성자별 통계
+- [x] 채널별 통계
+- [x] 일별 활동량 통계
+- [x] 시간대별 활동량 통계
+- [x] 언어 분포 통계
+- [x] 평균 메시지 길이
+- [x] 가장 활발한 시간대
+- [x] 가장 활발한 날짜
+- [x] 실제 SQLite 데이터 분석 검증
+- [x] `/분석` Discord Command
+- [x] 분석 기간 선택
+- [x] Custom Period
+- [x] Collection Channel 연동
+- [x] 다국어 Analysis UI
+- [x] 실제 Discord 분석 결과 검증
+- [x] 전체 테스트 100 PASS
+
+# Sprint 7 — Translation Service
+
+- [ ] 다국어 Conversation 처리
+- [ ] Language Distribution
+- [ ] 대표 언어 및 혼용 언어 정책
+- [ ] Translation Service
+- [ ] Translation Data Model
+- [ ] 원본 데이터와 번역 데이터 분리
+- [ ] Conversation Translation
+- [ ] Translation 테스트
+- [ ] 실제 Discord Integration Test
+
+# Future Data Collection
+
+## Voice Data
+
+- [ ] Voice Collector 설계
+- [ ] Voice Session Metadata
+- [ ] Voice Session 저장 구조
+- [ ] 실제 Discord Voice Integration Test
+
 ## Sprint 7
 
 - 다국어 Conversation 처리

@@ -22,6 +22,9 @@ class Config:
     google_credentials: str = os.getenv(
         "GOOGLE_APPLICATION_CREDENTIALS", ""
     )
+    discord_guild_id: int = int(
+        os.getenv("DISCORD_GUILD_ID", "0")
+    )
 
     # Paths
     storage_dir: Path = BASE_DIR / "storage"

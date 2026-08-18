@@ -129,3 +129,12 @@ class MessageCollector:
 
     def start_cleanup(self):
         self.service.conversation_buffer.start_cleanup()
+
+
+    async def collect_raw_delete(
+        self,
+        payload: discord.RawMessageDeleteEvent,
+    ):
+        self.service.delete(
+            payload.message_id,
+        )

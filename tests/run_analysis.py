@@ -1,19 +1,14 @@
 from datetime import datetime, timezone
 
-from app.dto.analysis_scope_dto import AnalysisScopeDTO
+from app.dto.analysis_request_dto import AnalysisRequestDTO
 from app.services.analysis_service import AnalysisService
-from app.services.statistics_service import StatisticsService
 
 
 def main():
     analysis_service = AnalysisService()
-    statistics_service = StatisticsService()
 
-    scope = AnalysisScopeDTO(
+    request = AnalysisRequestDTO(
         guild_id=1534142774847471716,
-        channel_ids=[
-            1534142775925145643,
-        ],
         start_at=datetime(
             2026,
             8,
@@ -21,11 +16,10 @@ def main():
             tzinfo=timezone.utc,
         ),
         end_at=datetime.now(timezone.utc),
+        output_language="ko",
     )
 
-    dataset = analysis_service.build_dataset(scope)
-
-    statistics = statistics_service.analyze(dataset)
+    statistics = analysis_service.analyze(request)
 
     print()
     print("========== Analysis Result ==========")
