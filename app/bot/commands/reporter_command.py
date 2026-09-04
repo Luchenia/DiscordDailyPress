@@ -23,14 +23,14 @@ class ReporterCommand:
         reporter_group = app_commands.Group(
             name=app_commands.locale_str("기자"),
             description=app_commands.locale_str(
-                "기자를 파견하고 관리합니다."
+                "분석 대상 채널을 관리합니다."
             ),
         )
 
         @reporter_group.command(
             name=app_commands.locale_str("파견"),
             description=app_commands.locale_str(
-                "현재 채널에 기자를 파견합니다."
+                "현재 채널을 분석 대상으로 활성화합니다."
             ),
         )
         async def dispatch(
@@ -86,8 +86,8 @@ class ReporterCommand:
                 if existing_channel.enabled:
 
                     await interaction.response.send_message(
-                        f"📰 이미 파견된 기자가 있습니다.\n\n"
-                        f"📍 파견지: #{channel_name}",
+                        f"📰 이미 분석 대상으로 활성화된 채널입니다.\n\n"
+                        f"📍 분석 대상: #{channel_name}",
                         ephemeral=True,
                     )
 
@@ -112,15 +112,15 @@ class ReporterCommand:
                 )
 
             await interaction.response.send_message(
-                f"📰 **기자 파견 완료**\n\n"
-                f"📍 파견지: #{channel_name}\n\n"
-                f"이제부터 해당 채널의 소식을 취재합니다.",
+                f"📰 **분석 대상 채널 활성화 완료**\n\n"
+                f"📍 분석 대상: #{channel_name}\n\n"
+                f"이 채널의 수집된 원본 메시지가 향후 분석에 포함됩니다.",
             )
 
         @reporter_group.command(
             name=app_commands.locale_str("철수"),
             description=app_commands.locale_str(
-                "현재 채널에서 기자를 철수시킵니다."
+                "현재 채널을 분석 대상에서 비활성화합니다."
             ),
         )
         async def recall(
@@ -162,16 +162,16 @@ class ReporterCommand:
             if not success:
 
                 await interaction.response.send_message(
-                    "📭 이곳에는 파견된 기자가 없습니다.",
+                    "📭 이 채널은 분석 대상으로 활성화되어 있지 않습니다.",
                     ephemeral=True,
                 )
 
                 return
 
             await interaction.response.send_message(
-                f"📰 **기자 철수 완료**\n\n"
-                f"📍 파견지: #{interaction.channel.name}\n\n"
-                f"해당 채널의 취재를 중단합니다.",
+                f"📰 **분석 대상 채널 비활성화 완료**\n\n"
+                f"📍 분석 대상: #{interaction.channel.name}\n\n"
+                f"원본 메시지는 계속 보존되며, 이 채널은 향후 분석에서 제외됩니다.",
             )
 
         @reporter_group.command(
@@ -204,9 +204,9 @@ class ReporterCommand:
             ]
 
             embed = discord.Embed(
-                title="📰 파견지 현황",
+                title="📰 분석 대상 채널 현황",
                 description=(
-                    "현재 기자들이 파견된 채널입니다."
+                    "현재 분석에 포함되는 활성 채널입니다."
                 ),
             )
 
@@ -218,28 +218,28 @@ class ReporterCommand:
                 )
 
                 embed.add_field(
-                    name="현재 파견지",
+                    name="활성 분석 대상",
                     value=locations,
                     inline=False,
                 )
 
                 embed.set_footer(
                     text=(
-                        f"파견 기자: "
-                        f"{len(active_channels)}명"
+                        f"활성 분석 채널: "
+                        f"{len(active_channels)}개"
                     ),
                 )
 
             else:
 
                 embed.add_field(
-                    name="현재 파견지",
-                    value="현재 파견된 기자가 없습니다.",
+                    name="활성 분석 대상",
+                    value="활성 분석 대상 채널이 없습니다.",
                     inline=False,
                 )
 
                 embed.set_footer(
-                    text="파견 기자: 0명",
+                    text="활성 분석 채널: 0개",
                 )
 
             await interaction.response.send_message(

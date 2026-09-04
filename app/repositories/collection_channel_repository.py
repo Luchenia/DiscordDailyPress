@@ -6,7 +6,7 @@ from app.models.collection_channel import CollectionChannel
 
 class CollectionChannelRepository:
     """
-    CollectionChannel 테이블 담당 Repository
+    분석 대상 CollectionChannel 테이블 담당 Repository
     """
 
     def add(

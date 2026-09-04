@@ -114,8 +114,9 @@ def test_reporter_dispatch_adds_new_channel():
         interaction.response.send_message.call_args.args[0]
     )
 
-    assert "기자 파견 완료" in message
+    assert "분석 대상 채널 활성화 완료" in message
     assert "일반" in message
+    assert "향후 분석에 포함" in message
 
 
 def test_reporter_dispatch_reactivates_existing_channel():
@@ -157,7 +158,7 @@ def test_reporter_dispatch_reactivates_existing_channel():
         interaction.response.send_message.call_args.args[0]
     )
 
-    assert "기자 파견 완료" in message
+    assert "분석 대상 채널 활성화 완료" in message
 
 
 def test_reporter_dispatch_rejects_already_active_channel():
@@ -196,7 +197,7 @@ def test_reporter_dispatch_rejects_already_active_channel():
         interaction.response.send_message.call_args.args[0]
     )
 
-    assert "이미 파견" in message
+    assert "이미 분석 대상으로 활성화" in message
 
 
 def test_reporter_recall_disables_channel():
@@ -227,7 +228,8 @@ def test_reporter_recall_disables_channel():
         interaction.response.send_message.call_args.args[0]
     )
 
-    assert "기자 철수 완료" in message
+    assert "분석 대상 채널 비활성화 완료" in message
+    assert "원본 메시지는 계속 보존" in message
 
 
 def test_reporter_recall_handles_missing_channel():
@@ -253,7 +255,7 @@ def test_reporter_recall_handles_missing_channel():
         interaction.response.send_message.call_args.args[0]
     )
 
-    assert "파견된 기자가 없습니다" in message
+    assert "분석 대상으로 활성화되어 있지 않습니다" in message
 
 
 def test_reporter_status_shows_active_channels():
@@ -299,7 +301,7 @@ def test_reporter_status_shows_active_channels():
         interaction.response.send_message.call_args.kwargs["embed"]
     )
 
-    assert embed.title == "📰 파견지 현황"
+    assert embed.title == "📰 분석 대상 채널 현황"
 
     embed_text = "\n".join(
         field.value
@@ -308,6 +310,24 @@ def test_reporter_status_shows_active_channels():
 
     assert "#일반" in embed_text
     assert "#잡담" in embed_text
+    assert embed.fields[0].name == "활성 분석 대상"
+
+
+def test_reporter_commands_describe_analysis_target_management():
+
+    _, tree = create_command()
+
+    command = tree.get_command("기자")
+
+    assert command.description == "분석 대상 채널을 관리합니다."
+    assert (
+        command.get_command("파견").description
+        == "현재 채널을 분석 대상으로 활성화합니다."
+    )
+    assert (
+        command.get_command("철수").description
+        == "현재 채널을 분석 대상에서 비활성화합니다."
+    )
 
 
 def test_reporter_commands_require_administrator():

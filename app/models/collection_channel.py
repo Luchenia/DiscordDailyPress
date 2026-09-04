@@ -11,7 +11,10 @@ from app.database.base import Base
 
 class CollectionChannel(Base):
     """
-    Chronicle이 수집 대상으로 관리하는 Discord 채널
+    Chronicle이 분석 대상으로 관리하는 Discord 채널.
+
+    활성화 상태는 분석 범위만 결정한다. 길드 원본 메시지 수집은
+    이 설정과 독립적으로 수행된다.
     """
 
     __tablename__ = "collection_channels"
@@ -53,7 +56,7 @@ class CollectionChannel(Base):
     )
 
     # ==========================
-    # 수집 활성화 여부
+    # 분석 포함 여부
     # ==========================
     enabled: Mapped[bool] = mapped_column(
         Boolean,

@@ -8,6 +8,12 @@ logger = get_logger(__name__)
 
 
 class MessageCollector:
+    """
+    길드의 원본 메시지를 수집한다.
+
+    CollectionChannel 활성화 상태는 분석 범위에만 사용하며,
+    이 Collector의 원본 메시지 수집을 제한하지 않는다.
+    """
 
     def __init__(self):
         self.service = MessageService()
@@ -20,6 +26,7 @@ class MessageCollector:
         # if message.author.bot:
         #     return
 
+        # 분석 대상 채널 설정과 관계없이 모든 길드 원본 메시지를 수집한다.
         if message.guild is None:
             return
 
