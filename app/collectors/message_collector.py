@@ -66,7 +66,7 @@ class MessageCollector:
             edited_at=message.edited_at,
         )
 
-        self.service.save(dto)
+        return self.service.save(dto)
 
 
     async def collect_edit(

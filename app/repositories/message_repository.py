@@ -1,10 +1,19 @@
+from dataclasses import dataclass
+from datetime import datetime
+
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
 from app.models.message import Message
 from app.utils.datetime_utils import ensure_utc
-from datetime import datetime
+
+
+@dataclass(frozen=True)
+class MessageSaveResult:
+    message: Message
+    created: bool
 
 
 
@@ -14,13 +23,35 @@ class MessageRepository:
     Message 테이블 전담 Repository
     """
 
-    def save(self, message: Message) -> Message:
+    def save(self, message: Message) -> MessageSaveResult:
         with SessionLocal() as session:
-            session.add(message)
-            session.commit()
-            session.refresh(message)
+            try:
+                session.add(message)
+                session.commit()
+                session.refresh(message)
 
-            return message
+                return MessageSaveResult(
+                    message=message,
+                    created=True,
+                )
+
+            except IntegrityError:
+                session.rollback()
+
+                existing = session.scalar(
+                    select(Message).where(
+                        Message.discord_message_id
+                        == message.discord_message_id
+                    )
+                )
+
+                if existing is None:
+                    raise
+
+                return MessageSaveResult(
+                    message=existing,
+                    created=False,
+                )
 
     def get_all(self) -> list[Message]:
         with SessionLocal() as session:

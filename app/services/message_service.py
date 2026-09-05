@@ -3,6 +3,7 @@ from app.dto.discord_message_dto import DiscordMessageDTO
 from app.mappers.message_mapper import MessageMapper
 from app.models.message import Message
 from app.repositories.message_repository import MessageRepository
+from app.repositories.message_repository import MessageSaveResult
 from app.utils.text_normalizer import normalize
 from app.core.logger import get_logger
 from app.repositories.message_history_repository import MessageHistoryRepository
@@ -34,7 +35,7 @@ class MessageService:
     def save(
         self,
         dto: DiscordMessageDTO,
-    ) -> Message | None:
+    ) -> MessageSaveResult | None:
 
         # 1. Bot Filter
         if dto.is_bot:
@@ -55,7 +56,14 @@ class MessageService:
         entity = MessageMapper.dto_to_entity(dto)
 
         # 4. Save
-        saved = self.repository.save(entity)
+        save_result = self.repository.save(entity)
+
+        if not save_result.created:
+            logger.info(
+                "Skipped duplicate message create (Discord: %s)",
+                dto.discord_message_id,
+            )
+            return save_result
 
         # 5. Conversation Buffer
         session = self.conversation_buffer.add(dto)
@@ -63,8 +71,8 @@ class MessageService:
         # 6. Log
         logger.info(
             "Saved message #%s from %s",
-            saved.id,
-            saved.author_display_name,
+            save_result.message.id,
+            save_result.message.author_display_name,
         )
 
         logger.info(
@@ -72,7 +80,7 @@ class MessageService:
             len(session.messages),
         )
 
-        return saved
+        return save_result
 
     def update(
         self,
