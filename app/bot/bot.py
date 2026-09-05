@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 
@@ -8,14 +10,25 @@ from app.repositories.collection_channel_repository import (
     CollectionChannelRepository,
 )
 from app.services.analysis_service import AnalysisService
+from app.services.translation_provider import TranslationProvider
+from app.services.translation_queue_service import TranslationQueueService
+from app.services.translation_worker import TranslationWorker
 from app.core.config import config
+from app.core.logger import get_logger
 
 from app.bot.localization import ChronicleTranslator
+
+logger = get_logger(__name__)
 
 
 class ChronicleBot(commands.Bot):
 
-    def __init__(self):
+    TRANSLATION_DRAIN_TIMEOUT_SECONDS = 5
+
+    def __init__(
+        self,
+        translation_provider: TranslationProvider | None = None,
+    ):
 
         intents = discord.Intents.default()
 
@@ -39,6 +52,22 @@ class ChronicleBot(commands.Bot):
         self.reporter_command = ReporterCommand(
             repository=CollectionChannelRepository(),
         )
+
+        self.translation_queue: TranslationQueueService | None = None
+        self.translation_worker: TranslationWorker | None = None
+        self._accepting_translation_jobs = False
+        self._translation_closing = False
+
+        if translation_provider is not None:
+            self.translation_queue = TranslationQueueService(maxsize=100)
+            self.translation_worker = TranslationWorker(
+                self.translation_queue,
+                translation_provider,
+            )
+
+    @property
+    def accepts_translation_jobs(self) -> bool:
+        return self._accepting_translation_jobs
 
     async def setup_hook(self):
 
@@ -78,6 +107,10 @@ class ChronicleBot(commands.Bot):
 
         print("Guild slash commands synchronized.")
 
+        if self.translation_worker is not None and not self._translation_closing:
+            self.translation_worker.start()
+            self._accepting_translation_jobs = True
+
     async def on_ready(self):
 
         print(f"Logged in as {self.user}")
@@ -86,9 +119,59 @@ class ChronicleBot(commands.Bot):
 
     async def close(self):
 
-        await self.message_collector.stop_cleanup()
+        self._translation_closing = True
+        self._accepting_translation_jobs = False
 
-        await super().close()
+        try:
+
+            try:
+
+                await self._shutdown_translation()
+
+            except Exception:
+
+                logger.exception("Translation shutdown failed")
+
+        finally:
+
+            try:
+
+                try:
+
+                    await self.message_collector.stop_cleanup()
+
+                except Exception:
+
+                    logger.exception("Conversation buffer shutdown failed")
+
+            finally:
+
+                await super().close()
+
+    async def _shutdown_translation(self):
+
+        if self.translation_queue is None or self.translation_worker is None:
+            return
+
+        try:
+
+            try:
+
+                await asyncio.wait_for(
+                    self.translation_queue.join(),
+                    timeout=self.TRANSLATION_DRAIN_TIMEOUT_SECONDS,
+                )
+
+            except asyncio.TimeoutError:
+
+                logger.warning(
+                    "Translation queue did not drain within %s seconds",
+                    self.TRANSLATION_DRAIN_TIMEOUT_SECONDS,
+                )
+
+        finally:
+
+            await self.translation_worker.stop()
 
     async def on_message(
         self,
