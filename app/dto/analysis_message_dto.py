@@ -22,6 +22,7 @@ class AnalysisMessageDTO(BaseModel):
     author_display_name: str
 
     content: str
+    # Detected language of the message's raw source content.
     language: str
 
     created_at: datetime

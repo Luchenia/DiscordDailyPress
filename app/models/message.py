@@ -86,6 +86,7 @@ class Message(Base):
         Text,
     )
 
+    # Detected language of this message's current raw source content.
     language: Mapped[str] = mapped_column(
         String(10),
         default="unknown",

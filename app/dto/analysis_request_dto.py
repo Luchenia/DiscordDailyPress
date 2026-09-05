@@ -6,6 +6,12 @@ from app.utils.datetime_utils import ensure_utc
 
 
 class AnalysisRequestDTO(BaseModel):
+    """Analysis scope plus the requested language for future derived output.
+
+    ``output_language`` does not alter raw message content or source-language
+    metadata, and is not consumed by the current statistics-only analysis.
+    """
+
     guild_id: int
 
     start_at: datetime

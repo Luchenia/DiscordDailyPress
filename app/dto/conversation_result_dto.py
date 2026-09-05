@@ -5,7 +5,10 @@ from pydantic import BaseModel
 
 class ConversationResultDTO(BaseModel):
     """
-    종료된 Conversation Session의 처리 결과
+    종료된 Conversation Session의 처리 결과.
+
+    ``language`` is detected from the combined session text. It is session
+    metadata and is not written directly to ``messages.language``.
     """
 
     message_ids: list[int]

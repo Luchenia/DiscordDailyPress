@@ -226,28 +226,35 @@ class MessageService:
         success_count = 0
         failure_count = 0
 
-        for discord_message_id in result.message_ids:
-
-            updated = self.repository.update_language(
-                discord_message_id=discord_message_id,
-                language=result.language,
-            )
-
-            if updated:
-                success_count += 1
-            else:
-                failure_count += 1
-
-                logger.warning(
-                    "Message %s not found while updating language.",
+        with SessionLocal.begin() as session:
+            for discord_message_id in result.message_ids:
+                message = self.repository.get_by_discord_message_id(
                     discord_message_id,
+                    session=session,
                 )
 
+                if message is None:
+                    failure_count += 1
+
+                    logger.warning(
+                        "Message %s not found while updating language.",
+                        discord_message_id,
+                    )
+                    continue
+
+                message.language = self.language_service.detect(
+                    message.content
+                )
+                self.repository.update(
+                    message,
+                    session=session,
+                )
+                success_count += 1
+
         logger.info(
-            "Language update completed: %s/%s messages updated to %s",
+            "Source language update completed: %s/%s messages",
             success_count,
             len(result.message_ids),
-            result.language,
         )
 
 
