@@ -21,6 +21,10 @@ class Config:
     gemini_translation_model: str = os.getenv(
         "GEMINI_TRANSLATION_MODEL", "gemini-3.5-flash-lite"
     )
+    nvidia_api_key: str = os.getenv("NVIDIA_API_KEY", "")
+    nvidia_translation_model: str = os.getenv(
+        "NVIDIA_TRANSLATION_MODEL", "nvidia/riva-translate-4b-instruct-v2"
+    )
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     google_credentials: str = os.getenv(
         "GOOGLE_APPLICATION_CREDENTIALS", ""
