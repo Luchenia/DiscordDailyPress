@@ -1,4 +1,5 @@
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
 from app.models.message import Message
@@ -41,18 +42,46 @@ class MessageRepository:
             )
 
 
-    def delete_by_id(self, message_id: int) -> bool:
+    def soft_delete_by_id(
+        self,
+        message_id: int,
+        deleted_at: datetime,
+        session: Session | None = None,
+    ) -> bool:
+        if session is not None:
+            return self._soft_delete_by_id(
+                session,
+                message_id,
+                deleted_at,
+            )
+
         with SessionLocal() as session:
-
-            message = session.get(Message, message_id)
-
-            if message is None:
-                return False
-
-            session.delete(message)
+            deleted = self._soft_delete_by_id(
+                session,
+                message_id,
+                deleted_at,
+            )
             session.commit()
 
+            return deleted
+
+    @staticmethod
+    def _soft_delete_by_id(
+        session: Session,
+        message_id: int,
+        deleted_at: datetime,
+    ) -> bool:
+        message = session.get(Message, message_id)
+
+        if message is None:
+            return False
+
+        if message.deleted_at is not None:
             return True
+
+        message.deleted_at = deleted_at
+
+        return True
         
     def update(
         self,
@@ -72,15 +101,17 @@ class MessageRepository:
     def get_by_discord_message_id(
         self,
         discord_message_id: int,
+        session: Session | None = None,
     ) -> Message | None:
+        statement = select(Message).where(
+            Message.discord_message_id == discord_message_id
+        )
+
+        if session is not None:
+            return session.scalar(statement)
 
         with SessionLocal() as session:
-
-            return session.scalar(
-                select(Message).where(
-                    Message.discord_message_id == discord_message_id
-                )
-            )
+            return session.scalar(statement)
 
     def update_language(
         self,
@@ -121,6 +152,7 @@ class MessageRepository:
                     Message.channel_id.in_(channel_ids),
                     Message.created_at >= start_at,
                     Message.created_at < end_at,
+                    Message.deleted_at.is_(None),
                 )
             )
 

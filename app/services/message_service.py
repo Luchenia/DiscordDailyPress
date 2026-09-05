@@ -12,6 +12,7 @@ from app.models.message_delete_history import MessageDeleteHistory
 from app.services.language_service import LanguageService
 from app.services.conversation_buffer import ConversationBuffer
 from app.dto.conversation_result_dto import ConversationResultDTO
+from app.database.session import SessionLocal
 
 
 logger = get_logger(__name__)
@@ -137,41 +138,67 @@ class MessageService:
         discord_message_id: int,
     ) -> bool:
 
-        entity = self.repository.get_by_discord_message_id(
-            discord_message_id
-        )
-
-        if entity is None:
-            logger.warning(
-                "Message %s not found.",
+        with SessionLocal.begin() as session:
+            entity = self.repository.get_by_discord_message_id(
                 discord_message_id,
+                session=session,
             )
-            return False
 
-        history = MessageDeleteHistory(
-            message_id=entity.id,
-            discord_message_id=entity.discord_message_id,
+            if entity is None:
+                logger.warning(
+                    "Message %s not found.",
+                    discord_message_id,
+                )
+                return False
 
-            guild_id=entity.guild_id,
-            channel_id=entity.channel_id,
+            if entity.deleted_at is not None:
+                logger.info(
+                    "Message #%s (Discord: %s) is already deleted.",
+                    entity.id,
+                    entity.discord_message_id,
+                )
+                return True
 
-            author_id=entity.author_id,
-            author_display_name=entity.author_display_name,
+            message_id = entity.id
+            message_discord_id = entity.discord_message_id
+            deleted_at = datetime.now(UTC)
 
-            content=entity.content,
+            history = MessageDeleteHistory(
+                message_id=message_id,
+                discord_message_id=message_discord_id,
 
-            created_at=entity.created_at,
-            deleted_at=datetime.now(UTC),
-        )
+                guild_id=entity.guild_id,
+                channel_id=entity.channel_id,
 
-        self.delete_history_repository.save(history)
+                author_id=entity.author_id,
+                author_display_name=entity.author_display_name,
 
-        self.repository.delete_by_id(entity.id)
+                content=entity.content,
+
+                created_at=entity.created_at,
+                deleted_at=deleted_at,
+            )
+
+            self.delete_history_repository.save(
+                history,
+                session=session,
+            )
+
+            deleted = self.repository.soft_delete_by_id(
+                message_id=message_id,
+                deleted_at=deleted_at,
+                session=session,
+            )
+
+            if not deleted:
+                raise RuntimeError(
+                    "Message disappeared during soft delete."
+                )
 
         logger.info(
-            "Deleted message #%s (Discord: %s)",
-            entity.id,
-            entity.discord_message_id,
+            "Soft-deleted message #%s (Discord: %s)",
+            message_id,
+            message_discord_id,
         )
 
         return True
