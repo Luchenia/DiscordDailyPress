@@ -118,7 +118,10 @@ class MessageRepository:
     def update(
         self,
         message: Message,
+        session: Session | None = None,
     ) -> Message:
+        if session is not None:
+            return session.merge(message)
 
         with SessionLocal() as session:
 

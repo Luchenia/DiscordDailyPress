@@ -11,9 +11,11 @@ from sqlalchemy.pool import StaticPool
 from app.database.base import Base
 from app.dto.discord_message_dto import DiscordMessageDTO
 from app.models.message import Message
+from app.models.message_history import MessageHistory
 from app.repositories import message_history_repository
 from app.repositories import message_repository
 from app.repositories.message_repository import MessageRepository
+from app.services import message_service
 from app.services.message_service import MessageService
 
 
@@ -38,6 +40,7 @@ def test_session_local(monkeypatch):
         "SessionLocal",
         TestSessionLocal,
     )
+    monkeypatch.setattr(message_service, "SessionLocal", TestSessionLocal)
 
     yield TestSessionLocal
 
@@ -164,3 +167,68 @@ def test_edit_flow_still_updates_content_after_create(test_session_local):
 
     assert stored is not None
     assert stored.content == "edited content"
+
+
+def test_message_history_versions_and_content_are_per_message(
+    test_session_local,
+):
+    service = MessageService()
+    first = service.save(create_dto(1001, "original"))
+    second = service.save(create_dto(1002, "other original"))
+
+    assert first is not None
+    assert second is not None
+
+    for content in ("first edit", "second edit", "third edit"):
+        service.update(
+            create_dto(
+                1001,
+                content,
+                edited_at=datetime.now(UTC),
+            )
+        )
+
+    service.update(
+        create_dto(
+            1002,
+            "other edit",
+            edited_at=datetime.now(UTC),
+        )
+    )
+
+    with test_session_local() as session:
+        first_histories = list(
+            session.scalars(
+                select(MessageHistory)
+                .where(MessageHistory.message_id == first.message.id)
+                .order_by(MessageHistory.version)
+            )
+        )
+        second_histories = list(
+            session.scalars(
+                select(MessageHistory)
+                .where(MessageHistory.message_id == second.message.id)
+                .order_by(MessageHistory.version)
+            )
+        )
+        first_message = session.get(Message, first.message.id)
+        second_message = session.get(Message, second.message.id)
+
+    assert [history.version for history in first_histories] == [1, 2, 3]
+    assert [
+        (history.old_content, history.new_content)
+        for history in first_histories
+    ] == [
+        ("original", "first edit"),
+        ("first edit", "second edit"),
+        ("second edit", "third edit"),
+    ]
+    assert [history.version for history in second_histories] == [1]
+    assert [
+        (history.old_content, history.new_content)
+        for history in second_histories
+    ] == [("other original", "other edit")]
+    assert first_message is not None
+    assert first_message.content == "third edit"
+    assert second_message is not None
+    assert second_message.content == "other edit"

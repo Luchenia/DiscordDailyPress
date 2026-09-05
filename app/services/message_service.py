@@ -88,39 +88,46 @@ class MessageService:
     ) -> Message | None:
 
         # 1. Discord 메시지 ID로 기존 데이터 조회
-        entity = self.repository.get_by_discord_message_id(
-            dto.discord_message_id
-        )
+        with SessionLocal(expire_on_commit=False) as session:
+            with session.begin():
+                entity = self.repository.get_by_discord_message_id(
+                    dto.discord_message_id,
+                    session=session,
+                )
 
-        if entity is None:
-            logger.warning(
-                "Message %s not found.",
-                dto.discord_message_id,
-            )
-            return None
+                if entity is None:
+                    logger.warning(
+                        "Message %s not found.",
+                        dto.discord_message_id,
+                    )
+                    return None
 
-        history = MessageHistory(
-            message_id=entity.id,
-            discord_message_id=entity.discord_message_id,
+                history = MessageHistory(
+                    message_id=entity.id,
+                    discord_message_id=entity.discord_message_id,
 
-            version=1,   # 일단 고정, 다음 Sprint에서 자동 증가
+                    old_content=entity.content,
+                    new_content=normalize(dto.content),
 
-            old_content=entity.content,
-            new_content=normalize(dto.content),
+                    edited_at=dto.edited_at or datetime.now(UTC),
+                )
+                self.history_repository.save(
+                    history,
+                    session=session,
+                )
 
-            edited_at=dto.edited_at or datetime.now(UTC),
-        )
-        self.history_repository.save(history)
+                entity.content = history.new_content
 
-        entity.content = history.new_content
+                entity.language = self.language_service.detect(
+                    entity.content
+                )
 
-        entity.language = self.language_service.detect(
-            entity.content
-        )
+                entity.edited_at = history.edited_at
 
-        entity.edited_at = history.edited_at
-
-        updated = self.repository.update(entity)
+                updated = self.repository.update(
+                    entity,
+                    session=session,
+                )
         
 
         # # 2. 내용 정규화
