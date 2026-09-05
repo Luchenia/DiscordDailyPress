@@ -248,3 +248,6 @@ class MessageService:
             len(result.message_ids),
             result.language,
         )
+
+    async def stop_conversation_cleanup(self) -> None:
+        await self.conversation_buffer.stop_cleanup()

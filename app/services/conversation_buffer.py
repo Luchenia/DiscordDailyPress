@@ -101,6 +101,11 @@ class ConversationBuffer:
 
         self._cleanup_task: asyncio.Task | None = None
 
+        self._pending_sessions: dict[
+            int,
+            ConversationSession,
+        ] = {}
+
         self.language_service = LanguageService()
 
         self.result_handler = result_handler
@@ -141,10 +146,18 @@ class ConversationBuffer:
 
             return current_session
 
-        # 5초가 지났다면 기존 세션 종료
-        #expired_session = current_session
+        result = self._flush_session(
+            self.sessions,
+            key,
+            current_session,
+        )
 
-        # 새로운 세션 생성
+        if result is None:
+            if self.sessions.get(key) is current_session:
+                del self.sessions[key]
+
+            self._pending_sessions[id(current_session)] = current_session
+
         new_session = ConversationSession(
             author_id=message.author_id,
             channel_id=message.channel_id,
@@ -160,7 +173,10 @@ class ConversationBuffer:
         만료된 ConversationSession을 정리하는 백그라운드 작업 시작
         """
 
-        if self._cleanup_task is not None:
+        if (
+            self._cleanup_task is not None
+            and not self._cleanup_task.done()
+        ):
             return
 
         logger.info("Starting conversation cleanup task")
@@ -169,6 +185,26 @@ class ConversationBuffer:
             self._cleanup_loop()
         )
 
+    async def stop_cleanup(self) -> list[ConversationResultDTO]:
+        """Stop the cleanup task and flush every buffered conversation."""
+        task = self._cleanup_task
+        self._cleanup_task = None
+
+        if task is not None:
+            if not task.done():
+                task.cancel()
+
+            try:
+                await task
+            except asyncio.CancelledError:
+                logger.info("Conversation cleanup task cancelled")
+            except Exception:
+                logger.exception(
+                    "Conversation cleanup task ended unexpectedly"
+                )
+
+        return self.flush_all()
+
     async def _cleanup_loop(self) -> None:
         """
         주기적으로 만료된 세션을 확인한다.
@@ -176,18 +212,29 @@ class ConversationBuffer:
 
         logger.info("Conversation cleanup loop started")
 
-        while True:
-            await asyncio.sleep(
-                self.CLEANUP_INTERVAL_SECONDS
-            )
-
-            results = self.flush_expired()
-
-            if results:
-                logger.info(
-                    "Flushed %s conversation result(s)",
-                    len(results),
+        try:
+            while True:
+                await asyncio.sleep(
+                    self.CLEANUP_INTERVAL_SECONDS
                 )
+
+                try:
+                    results = self.flush_expired()
+
+                    if results:
+                        logger.info(
+                            "Flushed %s conversation result(s)",
+                            len(results),
+                        )
+
+                except Exception:
+                    logger.exception(
+                        "Conversation cleanup cycle failed"
+                    )
+
+        except asyncio.CancelledError:
+            logger.info("Conversation cleanup loop stopped")
+            raise
 
     def flush_expired(
         self,
@@ -196,37 +243,95 @@ class ConversationBuffer:
         results: list[ConversationResultDTO] = []
 
         for key, session in list(self.sessions.items()):
-
-            elapsed = (
-                datetime.now(
-                    session.last_message_at.tzinfo
-                )
-                - session.last_message_at
-            ).total_seconds()
-
-            if elapsed > self.BUFFER_TIMEOUT_SECONDS:
-
-                text = session.get_text()
-
-                language = self.language_service.detect(
-                    text
+            if self._is_expired(session):
+                result = self._flush_session(
+                    self.sessions,
+                    key,
+                    session,
                 )
 
-                result = session.to_result(
-                    language=language
-                )
+                if result is not None:
+                    results.append(result)
 
-                results.append(result)
-
-                if self.result_handler is not None:
-                    self.result_handler(result)
-
-                logger.info(
-                    "Conversation ended: %s (language=%s)",
-                    result.text,
-                    result.language,
-                )
-
-                del self.sessions[key]
+        results.extend(self._flush_pending_sessions())
 
         return results
+
+    def flush_all(self) -> list[ConversationResultDTO]:
+        """Flush all active and retry-pending conversations."""
+        results: list[ConversationResultDTO] = []
+
+        for key, session in list(self.sessions.items()):
+            result = self._flush_session(
+                self.sessions,
+                key,
+                session,
+            )
+
+            if result is not None:
+                results.append(result)
+
+        results.extend(self._flush_pending_sessions())
+
+        return results
+
+    def _flush_pending_sessions(self) -> list[ConversationResultDTO]:
+        results: list[ConversationResultDTO] = []
+
+        for session_id, session in list(
+            self._pending_sessions.items()
+        ):
+            result = self._flush_session(
+                self._pending_sessions,
+                session_id,
+                session,
+            )
+
+            if result is not None:
+                results.append(result)
+
+        return results
+
+    def _is_expired(
+        self,
+        session: ConversationSession,
+    ) -> bool:
+        elapsed = (
+            datetime.now(session.last_message_at.tzinfo)
+            - session.last_message_at
+        ).total_seconds()
+
+        return elapsed > self.BUFFER_TIMEOUT_SECONDS
+
+    def _flush_session(
+        self,
+        sessions: dict,
+        key: tuple[int, int] | int,
+        session: ConversationSession,
+    ) -> ConversationResultDTO | None:
+        try:
+            text = session.get_text()
+            language = self.language_service.detect(text)
+            result = session.to_result(language=language)
+
+            if self.result_handler is not None:
+                self.result_handler(result)
+
+        except Exception:
+            logger.exception(
+                "Failed to flush conversation for author=%s channel=%s",
+                session.author_id,
+                session.channel_id,
+            )
+            return None
+
+        if sessions.get(key) is session:
+            del sessions[key]
+
+        logger.info(
+            "Conversation ended: %s (language=%s)",
+            result.text,
+            result.language,
+        )
+
+        return result

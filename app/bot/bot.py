@@ -84,6 +84,12 @@ class ChronicleBot(commands.Bot):
 
         self.message_collector.start_cleanup()
 
+    async def close(self):
+
+        await self.message_collector.stop_cleanup()
+
+        await super().close()
+
     async def on_message(
         self,
         message: discord.Message,

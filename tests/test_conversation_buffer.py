@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 from app.dto.discord_message_dto import DiscordMessageDTO
@@ -91,6 +92,33 @@ def test_messages_after_5_seconds_create_new_session():
 
     assert len(session1.messages) == 1
     assert len(session2.messages) == 1
+
+
+def test_expired_session_is_flushed_before_new_message_starts_session():
+    flushed = []
+    buffer = ConversationBuffer(result_handler=flushed.append)
+    base_time = datetime.now(timezone.utc)
+
+    expired_message = create_message(
+        author_id=1,
+        channel_id=100,
+        content="expired",
+        created_at=base_time,
+    )
+    new_message = create_message(
+        author_id=1,
+        channel_id=100,
+        content="new",
+        created_at=base_time + timedelta(seconds=6),
+    )
+
+    old_session = buffer.add(expired_message)
+    new_session = buffer.add(new_message)
+
+    assert [result.text for result in flushed] == ["expired"]
+    assert old_session is not new_session
+    assert new_session.messages == [new_message]
+    assert buffer.sessions[(1, 100)] is new_session
 
 
 def test_different_channels_create_different_sessions():
@@ -230,6 +258,120 @@ def test_conversation_result_contains_all_message_ids():
         message2.discord_message_id,
         message3.discord_message_id,
     ]
+
+
+def test_flush_all_flushes_each_remaining_session_once():
+    flushed = []
+    buffer = ConversationBuffer(result_handler=flushed.append)
+    base_time = datetime.now(timezone.utc)
+
+    buffer.add(create_message(1, 100, "one", base_time))
+    buffer.add(create_message(2, 100, "two", base_time))
+
+    results = buffer.flush_all()
+
+    assert {result.text for result in results} == {"one", "two"}
+    assert len(flushed) == 2
+    assert buffer.sessions == {}
+    assert buffer.flush_all() == []
+    assert len(flushed) == 2
+
+
+def test_stop_cleanup_cancels_task_and_flushes_remaining_sessions():
+    async def run_test():
+        flushed = []
+        buffer = ConversationBuffer(result_handler=flushed.append)
+        buffer.add(
+            create_message(
+                1,
+                100,
+                "shutdown",
+                datetime.now(timezone.utc),
+            )
+        )
+        buffer.start_cleanup()
+        task = buffer._cleanup_task
+
+        results = await buffer.stop_cleanup()
+
+        assert [result.text for result in results] == ["shutdown"]
+        assert [result.text for result in flushed] == ["shutdown"]
+        assert task is not None
+        assert task.done()
+        assert buffer._cleanup_task is None
+        assert buffer.sessions == {}
+
+    asyncio.run(run_test())
+
+
+def test_stop_cleanup_flushes_when_done_task_failed_unexpectedly():
+    async def run_test():
+        flushed = []
+        buffer = ConversationBuffer(result_handler=flushed.append)
+        buffer.add(
+            create_message(
+                1,
+                100,
+                "after-task-failure",
+                datetime.now(timezone.utc),
+            )
+        )
+
+        async def fail_cleanup():
+            raise RuntimeError("forced cleanup task failure")
+
+        buffer._cleanup_task = asyncio.create_task(fail_cleanup())
+        await asyncio.sleep(0)
+
+        results = await buffer.stop_cleanup()
+
+        assert [result.text for result in results] == [
+            "after-task-failure"
+        ]
+        assert [result.text for result in flushed] == [
+            "after-task-failure"
+        ]
+        assert buffer.sessions == {}
+
+    asyncio.run(run_test())
+
+
+def test_cleanup_retries_failed_session_and_continues_other_sessions():
+    async def run_test():
+        calls = []
+        failed_once = False
+
+        def handler(result):
+            nonlocal failed_once
+            calls.append(result.text)
+
+            if result.text == "fail" and not failed_once:
+                failed_once = True
+                raise RuntimeError("forced handler failure")
+
+        buffer = ConversationBuffer(result_handler=handler)
+        buffer.CLEANUP_INTERVAL_SECONDS = 0.01
+        base_time = datetime.now(timezone.utc)
+
+        failed_session = buffer.add(
+            create_message(1, 100, "fail", base_time)
+        )
+        successful_session = buffer.add(
+            create_message(2, 100, "success", base_time)
+        )
+        failed_session.last_message_at = base_time - timedelta(seconds=6)
+        successful_session.last_message_at = base_time - timedelta(seconds=6)
+
+        buffer.start_cleanup()
+        await asyncio.sleep(0.05)
+        await buffer.stop_cleanup()
+
+        assert calls.count("fail") == 2
+        assert calls.count("success") == 1
+        assert buffer.sessions == {}
+        assert buffer._pending_sessions == {}
+
+    asyncio.run(run_test())
 
 
 def test_conversation_result_contains_message_ids():

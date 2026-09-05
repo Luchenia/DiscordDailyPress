@@ -137,6 +137,9 @@ class MessageCollector:
     def start_cleanup(self):
         self.service.conversation_buffer.start_cleanup()
 
+    async def stop_cleanup(self):
+        await self.service.stop_conversation_cleanup()
+
 
     async def collect_raw_delete(
         self,
