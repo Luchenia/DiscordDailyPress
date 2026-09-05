@@ -163,6 +163,23 @@ def test_custom_period():
         999999,
         tzinfo=KST,
     )
+    assert start_at == datetime(
+        2026,
+        7,
+        31,
+        15,
+        tzinfo=timezone.utc,
+    )
+    assert end_at == datetime(
+        2026,
+        8,
+        14,
+        14,
+        59,
+        59,
+        999999,
+        tzinfo=timezone.utc,
+    )
 
 
 def test_custom_period_start_only():

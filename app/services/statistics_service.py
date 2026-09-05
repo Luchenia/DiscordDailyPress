@@ -8,6 +8,7 @@ from app.dto.statistics_result_dto import (
     HourlyMessageCountDTO,
     StatisticsResultDTO,
 )
+from app.utils.datetime_utils import to_kst
 
 
 class StatisticsService:
@@ -31,12 +32,12 @@ class StatisticsService:
         )
 
         daily_counts = Counter(
-            message.created_at.date().isoformat()
+            to_kst(message.created_at).date().isoformat()
             for message in dataset.messages
         )
 
         hourly_counts = Counter(
-            message.created_at.hour
+            to_kst(message.created_at).hour
             for message in dataset.messages
         )
 

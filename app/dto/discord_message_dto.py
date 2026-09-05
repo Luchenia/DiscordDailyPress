@@ -1,6 +1,9 @@
 from datetime import datetime
 
 from pydantic import BaseModel
+from pydantic import field_validator
+
+from app.utils.datetime_utils import ensure_utc
 
 
 class DiscordMessageDTO(BaseModel):
@@ -34,3 +37,14 @@ class DiscordMessageDTO(BaseModel):
     # 시간
     created_at: datetime
     edited_at: datetime | None = None
+
+    @field_validator("created_at", "edited_at")
+    @classmethod
+    def normalize_datetime_to_utc(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is None:
+            return None
+
+        return ensure_utc(value)

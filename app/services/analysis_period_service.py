@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+from datetime import UTC, datetime, timedelta
 
+from app.utils.datetime_utils import KST, ensure_utc
 
-KST = ZoneInfo("Asia/Seoul")
 
 
 class AnalysisPeriodService:
@@ -17,15 +16,9 @@ class AnalysisPeriodService:
 
         if now is None:
 
-            now = datetime.now(
-                timezone.utc,
-            )
+            now = datetime.now(UTC)
 
-        if now.tzinfo is None:
-
-            now = now.replace(
-                tzinfo=timezone.utc,
-            )
+        now = ensure_utc(now)
 
         # 현재 시각을 한국 시간으로 변환
         local_now = now.astimezone(
@@ -43,7 +36,7 @@ class AnalysisPeriodService:
 
             return (
                 local_start.astimezone(
-                    timezone.utc,
+                    UTC,
                 ),
                 now,
             )
@@ -64,7 +57,7 @@ class AnalysisPeriodService:
 
             return (
                 local_start.astimezone(
-                    timezone.utc,
+                    UTC,
                 ),
                 now,
             )
@@ -81,7 +74,7 @@ class AnalysisPeriodService:
 
             return (
                 local_start.astimezone(
-                    timezone.utc,
+                    UTC,
                 ),
                 now,
             )
@@ -99,7 +92,7 @@ class AnalysisPeriodService:
 
             return (
                 local_start.astimezone(
-                    timezone.utc,
+                    UTC,
                 ),
                 now,
             )
@@ -134,7 +127,7 @@ class AnalysisPeriodService:
 
                     return (
                         local_start.astimezone(
-                            timezone.utc,
+                            UTC,
                         ),
                         now,
                     )
@@ -169,10 +162,10 @@ class AnalysisPeriodService:
 
             return (
                 local_start.astimezone(
-                    timezone.utc,
+                    UTC,
                 ),
                 local_end.astimezone(
-                    timezone.utc,
+                    UTC,
                 ),
             )
 

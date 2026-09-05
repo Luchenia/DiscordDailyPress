@@ -1,5 +1,4 @@
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
+from datetime import UTC, datetime
 
 import discord
 from discord import app_commands
@@ -9,9 +8,8 @@ from app.services.analysis_period_service import (
     AnalysisPeriodService,
 )
 from app.services.analysis_service import AnalysisService
+from app.utils.datetime_utils import to_kst
 
-
-KST = ZoneInfo("Asia/Seoul")
 
 
 class CustomPeriodModal(discord.ui.Modal):
@@ -218,9 +216,7 @@ class AnalysisCommand:
 
             return
 
-        now = datetime.now(
-            timezone.utc,
-        )
+        now = datetime.now(UTC)
 
         try:
 
@@ -294,8 +290,8 @@ class AnalysisCommand:
         # 분석 기간
         # ==========================
 
-        local_start = start_at.astimezone(KST)
-        local_end = end_at.astimezone(KST)
+        local_start = to_kst(start_at)
+        local_end = to_kst(end_at)
 
         embed = discord.Embed(
             title="📊 서버 대화 분석",

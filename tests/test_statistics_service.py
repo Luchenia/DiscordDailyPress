@@ -196,26 +196,29 @@ def test_statistics_service_counts_daily_and_hourly_activity():
     result = service.analyze(dataset)
 
     assert result.daily_activity[0].date == "2026-08-01"
-    assert result.daily_activity[0].message_count == 3
+    assert result.daily_activity[0].message_count == 2
 
     assert result.daily_activity[1].date == "2026-08-02"
     assert result.daily_activity[1].message_count == 2
 
-    assert result.hourly_activity[0].hour == 10
-    assert result.hourly_activity[0].message_count == 3
+    assert result.daily_activity[2].date == "2026-08-03"
+    assert result.daily_activity[2].message_count == 1
 
-    assert result.hourly_activity[1].hour == 15
+    assert result.hourly_activity[0].hour == 0
+    assert result.hourly_activity[0].message_count == 1
+
+    assert result.hourly_activity[1].hour == 5
     assert result.hourly_activity[1].message_count == 1
 
-    assert result.hourly_activity[2].hour == 20
-    assert result.hourly_activity[2].message_count == 1
+    assert result.hourly_activity[2].hour == 19
+    assert result.hourly_activity[2].message_count == 3
 
-    assert result.peak_activity_hour == 10
+    assert result.peak_activity_hour == 19
 
-    assert result.peak_activity_date == "2026-08-01"
-    assert result.peak_activity_date_count == 3
+    assert result.peak_activity_date == "2026-08-02"
+    assert result.peak_activity_date_count == 2
 
-    assert result.average_daily_message_count == 2.5
+    assert result.average_daily_message_count == 5 / 3
 
 
 def test_statistics_service_calculates_average_message_length():

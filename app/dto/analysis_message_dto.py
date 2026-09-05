@@ -1,6 +1,9 @@
 from datetime import datetime
 
 from pydantic import BaseModel
+from pydantic import field_validator
+
+from app.utils.datetime_utils import ensure_utc
 
 
 class AnalysisMessageDTO(BaseModel):
@@ -22,3 +25,8 @@ class AnalysisMessageDTO(BaseModel):
     language: str
 
     created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def normalize_datetime_to_utc(cls, value: datetime) -> datetime:
+        return ensure_utc(value)

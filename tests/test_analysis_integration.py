@@ -299,19 +299,19 @@ def test_analysis_service_analyzes_real_test_database(
         for activity in result.hourly_activity
     ] == [
         (
-            10,
+            19,
             1,
         ),
         (
-            11,
+            20,
             1,
         ),
         (
-            12,
+            21,
             1,
         ),
         (
-            13,
+            22,
             1,
         ),
     ]

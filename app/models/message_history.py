@@ -54,7 +54,7 @@ class MessageHistory(Base):
 
     # 수정 시각
     edited_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
     )
 
     edit_reason: Mapped[str | None]

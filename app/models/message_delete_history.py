@@ -57,9 +57,9 @@ class MessageDeleteHistory(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
     )
 
     deleted_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
     )

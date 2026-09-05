@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
 from app.models.message import Message
+from app.utils.datetime_utils import ensure_utc
 from datetime import datetime
 
 
@@ -143,6 +144,8 @@ class MessageRepository:
         start_at: datetime,
         end_at: datetime,
     ) -> list[Message]:
+        start_at = ensure_utc(start_at)
+        end_at = ensure_utc(end_at)
 
         with SessionLocal() as session:
 
