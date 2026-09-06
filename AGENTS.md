@@ -14,3 +14,4 @@
 - Run focused tests for changed behavior first, and the full suite only when appropriate for final verification.
 - Do not commit or push unless explicitly instructed.
 - Never delete or rewrite existing user data during schema migrations unless explicitly instructed. Verify assumptions about existing data before migrating or converting it.
+- For Codex agent roles, delegation, model routing, usage budgets, and worktree collaboration, follow `docs/development/AGENT_TEAM.md`; the core rules in this file take precedence.

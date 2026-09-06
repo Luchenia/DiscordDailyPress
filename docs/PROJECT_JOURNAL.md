@@ -1300,3 +1300,28 @@ Message Collection
 - 실제 Discord Integration Test
 
 또한 향후 Voice Collector를 별도의 Data Collection 확장 영역으로 설계한다.
+
+# Translation Provider Benchmark (2026-09-06)
+
+Gemini 3.5 Flash-Lite와 NVIDIA Riva Translate 4B v2를 실제 Discord 대화 번역
+후보로 비교하였다. 영어/한국어 일반 문장, slang, 은어, 한영 혼용, emoji,
+Discord mention, URL, inline code, fenced code와 Markdown을 포함한 8개 case를
+사용했으며 provider별 8회, 총 16회 API request를 재시도 없이 실행했다.
+
+Blind human evaluation과 자동 보존 검사를 합친 결과:
+
+| Provider | 평균 정성 점수 | 평균 latency |
+| --- | ---: | ---: |
+| Gemini 3.5 Flash-Lite | 93.4 | 약 3.812s |
+| NVIDIA Riva Translate 4B v2 | 73.9 | 약 0.775s |
+
+NVIDIA는 약 4.9배 빨랐지만, Discord slang과 한국어 은어에서 의미 왜곡이
+나타났고 fenced code 및 `API_KEY` 변경 금지 지시를 누락한 case가 있었다.
+Gemini는 한 case에서 `패치 노드`라는 오타가 있었으나 전체 의미, 말투,
+mention, URL, code, Markdown 보존 품질에서 우세했다.
+
+현재 설계 방향은 Gemini-first이다. NVIDIA는 짧고 단순한 plain-text에 대한
+조건부 fast-path 또는 fallback 후보로 유지한다. Provider error뿐 아니라
+mention, URL, inline/fenced code 같은 출력 무결성 검증 실패도 failover 조건에
+포함해야 한다. Groq는 별도 검증 전까지 provider 순서에 확정적으로 포함하지
+않는다.
