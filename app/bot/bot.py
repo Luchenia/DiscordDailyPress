@@ -12,6 +12,7 @@ from app.repositories.collection_channel_repository import (
 from app.services.analysis_service import AnalysisService
 from app.services.translation_provider import TranslationProvider
 from app.services.translation_queue_service import TranslationQueueService
+from app.services.translation_producer_service import TranslationProducerService
 from app.services.translation_worker import TranslationWorker
 from app.core.config import config
 from app.core.logger import get_logger
@@ -41,8 +42,6 @@ class ChronicleBot(commands.Bot):
             intents=intents,
         )
 
-        self.message_collector = MessageCollector()
-
         self.analysis_service = AnalysisService()
 
         self.analysis_command = AnalysisCommand(
@@ -55,6 +54,7 @@ class ChronicleBot(commands.Bot):
 
         self.translation_queue: TranslationQueueService | None = None
         self.translation_worker: TranslationWorker | None = None
+        self.translation_producer: TranslationProducerService | None = None
         self._accepting_translation_jobs = False
         self._translation_closing = False
 
@@ -64,6 +64,14 @@ class ChronicleBot(commands.Bot):
                 self.translation_queue,
                 translation_provider,
             )
+            self.translation_producer = TranslationProducerService(
+                self.translation_queue,
+                config.translation_target_language,
+            )
+
+        self.message_collector = MessageCollector(
+            translation_producer=self.translation_producer,
+        )
 
     @property
     def accepts_translation_jobs(self) -> bool:
@@ -109,6 +117,7 @@ class ChronicleBot(commands.Bot):
 
         if self.translation_worker is not None and not self._translation_closing:
             self.translation_worker.start()
+            self.translation_producer.start()
             self._accepting_translation_jobs = True
 
     async def on_ready(self):
@@ -121,6 +130,8 @@ class ChronicleBot(commands.Bot):
 
         self._translation_closing = True
         self._accepting_translation_jobs = False
+        if self.translation_producer is not None:
+            self.translation_producer.stop()
 
         try:
 

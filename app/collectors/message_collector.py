@@ -3,6 +3,7 @@ import discord
 from app.core.logger import get_logger
 from app.dto.discord_message_dto import DiscordMessageDTO
 from app.services.message_service import MessageService
+from app.services.translation_producer_service import TranslationProducerService
 
 logger = get_logger(__name__)
 
@@ -15,8 +16,13 @@ class MessageCollector:
     이 Collector의 원본 메시지 수집을 제한하지 않는다.
     """
 
-    def __init__(self):
-        self.service = MessageService()
+    def __init__(
+        self,
+        translation_producer: TranslationProducerService | None = None,
+    ):
+        self.service = MessageService(
+            translation_producer=translation_producer,
+        )
 
     async def collect(
         self,

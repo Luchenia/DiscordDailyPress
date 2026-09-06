@@ -46,6 +46,7 @@ def test_provider_none_keeps_translation_lifecycle_disabled(monkeypatch):
 
         assert bot.translation_queue is None
         assert bot.translation_worker is None
+        assert bot.translation_producer is None
         assert bot.accepts_translation_jobs is False
 
         await bot.setup_hook()
@@ -68,6 +69,8 @@ def test_provider_starts_one_worker_across_repeated_setup(monkeypatch):
 
         assert bot.translation_queue is not None
         assert bot.translation_worker is not None
+        assert bot.translation_producer is not None
+        assert bot.translation_producer.accepting is False
         assert bot.translation_queue._queue.maxsize == 100
 
         await bot.setup_hook()
@@ -77,11 +80,13 @@ def test_provider_starts_one_worker_across_repeated_setup(monkeypatch):
 
         assert first_task is not None
         assert bot.translation_worker._task is first_task
+        assert bot.translation_producer.accepting is True
         assert bot.accepts_translation_jobs is True
 
         await bot.close()
 
         assert bot.translation_worker._task is None
+        assert bot.translation_producer.accepting is False
         assert bot.accepts_translation_jobs is False
 
     asyncio.run(scenario())

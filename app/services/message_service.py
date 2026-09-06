@@ -13,7 +13,10 @@ from app.models.message_delete_history import MessageDeleteHistory
 from app.services.language_service import LanguageService
 from app.services.conversation_buffer import ConversationBuffer
 from app.dto.conversation_result_dto import ConversationResultDTO
+from app.dto.translation_job_dto import TranslationSourceCandidate
 from app.database.session import SessionLocal
+from app.services.translation_producer_service import TranslationProducerService
+from app.utils.content_hash import calculate_source_content_hash
 
 
 logger = get_logger(__name__)
@@ -22,11 +25,15 @@ logger = get_logger(__name__)
 
 class MessageService:
 
-    def __init__(self):
+    def __init__(
+        self,
+        translation_producer: TranslationProducerService | None = None,
+    ):
         self.repository = MessageRepository()
         self.history_repository = MessageHistoryRepository()
         self.delete_history_repository = MessageDeleteHistoryRepository()
         self.language_service = LanguageService()
+        self.translation_producer = translation_producer
 
         self.conversation_buffer = ConversationBuffer(
             result_handler=self.process_conversation_result
@@ -128,6 +135,7 @@ class MessageService:
                     entity,
                     session=session,
                 )
+                translation_candidate = self._translation_candidate(updated)
         
 
         # # 2. 내용 정규화
@@ -144,6 +152,8 @@ class MessageService:
             updated.id,
             updated.discord_message_id,
         )
+
+        self._enqueue_translation_candidates([translation_candidate])
 
         return updated
 
@@ -221,10 +231,11 @@ class MessageService:
     def update_language(
         self,
         result: ConversationResultDTO,
-    ) -> None:
+    ) -> list[TranslationSourceCandidate]:
 
         success_count = 0
         failure_count = 0
+        translation_candidates = []
 
         with SessionLocal.begin() as session:
             for discord_message_id in result.message_ids:
@@ -245,9 +256,12 @@ class MessageService:
                 message.language = self.language_service.detect(
                     message.content
                 )
-                self.repository.update(
+                updated = self.repository.update(
                     message,
                     session=session,
+                )
+                translation_candidates.append(
+                    self._translation_candidate(updated)
                 )
                 success_count += 1
 
@@ -257,19 +271,48 @@ class MessageService:
             len(result.message_ids),
         )
 
+        return translation_candidates
+
 
     def process_conversation_result(
         self,
         result: ConversationResultDTO,
     ) -> None:
 
-        self.update_language(result)
+        translation_candidates = self.update_language(result)
+        self._enqueue_translation_candidates(translation_candidates)
 
         logger.info(
             "Processed conversation: %s messages, language=%s",
             len(result.message_ids),
             result.language,
         )
+
+    @staticmethod
+    def _translation_candidate(message: Message) -> TranslationSourceCandidate:
+        return TranslationSourceCandidate(
+            message_id=message.id,
+            guild_id=message.guild_id,
+            channel_id=message.channel_id,
+            source_language=message.language,
+            source_content_hash=calculate_source_content_hash(message.content),
+            deleted_at=message.deleted_at,
+        )
+
+    def _enqueue_translation_candidates(
+        self,
+        candidates: list[TranslationSourceCandidate],
+    ) -> None:
+        if self.translation_producer is None or not candidates:
+            return
+
+        try:
+            self.translation_producer.enqueue_candidates(candidates)
+        except Exception:
+            logger.exception(
+                "Translation producer failed for %s message(s)",
+                len(candidates),
+            )
 
     async def stop_conversation_cleanup(self) -> None:
         await self.conversation_buffer.stop_cleanup()

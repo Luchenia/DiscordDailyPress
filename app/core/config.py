@@ -25,6 +25,9 @@ class Config:
     nvidia_translation_model: str = os.getenv(
         "NVIDIA_TRANSLATION_MODEL", "nvidia/riva-translate-4b-instruct-v2"
     )
+    translation_target_language: str = os.getenv(
+        "TRANSLATION_TARGET_LANGUAGE", "ko"
+    )
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     google_credentials: str = os.getenv(
         "GOOGLE_APPLICATION_CREDENTIALS", ""
