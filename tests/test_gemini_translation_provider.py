@@ -256,20 +256,25 @@ def test_main_does_not_create_provider_without_api_key(monkeypatch, api_key):
         discord_bot_token="discord-token",
         gemini_api_key=api_key,
         gemini_translation_model="gemini-3.5-flash-lite",
+        nvidia_api_key="",
+        nvidia_translation_model="nvidia/riva-translate-4b-instruct-v2",
     )
     bot = Mock()
     bot_factory = Mock(return_value=bot)
     provider_factory = Mock()
+    fallback_factory = Mock()
     bootstrap = Mock()
     monkeypatch.setattr(main_module, "config", fake_config)
     monkeypatch.setattr(main_module, "ChronicleBot", bot_factory)
     monkeypatch.setattr(main_module, "GeminiTranslationProvider", provider_factory)
+    monkeypatch.setattr(main_module, "FallbackTranslationProvider", fallback_factory)
     monkeypatch.setattr(main_module, "bootstrap", bootstrap)
 
     main_module.main()
 
     bootstrap.assert_called_once()
     provider_factory.assert_not_called()
+    fallback_factory.assert_not_called()
     bot_factory.assert_called_once_with(translation_provider=None)
     bot.run.assert_called_once_with("discord-token")
 
@@ -279,14 +284,19 @@ def test_main_injects_provider_when_api_key_exists(monkeypatch):
         discord_bot_token="discord-token",
         gemini_api_key="gemini-key",
         gemini_translation_model="configured-model",
+        nvidia_api_key="",
+        nvidia_translation_model="nvidia/riva-translate-4b-instruct-v2",
     )
     provider = object()
     provider_factory = Mock(return_value=provider)
+    fallback_provider = object()
+    fallback_factory = Mock(return_value=fallback_provider)
     bot = Mock()
     bot_factory = Mock(return_value=bot)
     monkeypatch.setattr(main_module, "config", fake_config)
     monkeypatch.setattr(main_module, "ChronicleBot", bot_factory)
     monkeypatch.setattr(main_module, "GeminiTranslationProvider", provider_factory)
+    monkeypatch.setattr(main_module, "FallbackTranslationProvider", fallback_factory)
     monkeypatch.setattr(main_module, "bootstrap", Mock())
 
     main_module.main()
@@ -295,5 +305,43 @@ def test_main_injects_provider_when_api_key_exists(monkeypatch):
         api_key="gemini-key",
         model="configured-model",
     )
-    bot_factory.assert_called_once_with(translation_provider=provider)
+    fallback_factory.assert_called_once_with([provider])
+    bot_factory.assert_called_once_with(translation_provider=fallback_provider)
     bot.run.assert_called_once_with("discord-token")
+
+
+def test_main_orders_gemini_before_nvidia(monkeypatch):
+    fake_config = SimpleNamespace(
+        discord_bot_token="discord-token",
+        gemini_api_key="gemini-key",
+        gemini_translation_model="gemini-model",
+        nvidia_api_key="nvidia-key",
+        nvidia_translation_model="nvidia-model",
+    )
+    gemini_provider = object()
+    nvidia_provider = object()
+    fallback_provider = object()
+    gemini_factory = Mock(return_value=gemini_provider)
+    nvidia_factory = Mock(return_value=nvidia_provider)
+    fallback_factory = Mock(return_value=fallback_provider)
+    bot = Mock()
+    bot_factory = Mock(return_value=bot)
+    monkeypatch.setattr(main_module, "config", fake_config)
+    monkeypatch.setattr(main_module, "ChronicleBot", bot_factory)
+    monkeypatch.setattr(main_module, "GeminiTranslationProvider", gemini_factory)
+    monkeypatch.setattr(main_module, "NvidiaTranslationProvider", nvidia_factory)
+    monkeypatch.setattr(main_module, "FallbackTranslationProvider", fallback_factory)
+    monkeypatch.setattr(main_module, "bootstrap", Mock())
+
+    main_module.main()
+
+    gemini_factory.assert_called_once_with(
+        api_key="gemini-key",
+        model="gemini-model",
+    )
+    nvidia_factory.assert_called_once_with(
+        api_key="nvidia-key",
+        model="nvidia-model",
+    )
+    fallback_factory.assert_called_once_with([gemini_provider, nvidia_provider])
+    bot_factory.assert_called_once_with(translation_provider=fallback_provider)
