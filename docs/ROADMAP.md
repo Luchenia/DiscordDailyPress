@@ -543,7 +543,7 @@ Message Collection
 
 # AI Processing Roadmap
 
-## Sprint 7 — Translation Service
+## Sprint 7 — Translation Service ✅ (live integration verification pending)
 
 ### 목표
 
@@ -552,13 +552,19 @@ Conversation 데이터를 AI 분석에 사용할 수 있도록
 
 ### 설계
 
-- [ ] Translation Service 설계
-- [ ] Translation Data Model 설계
-- [ ] 원본 데이터와 번역 데이터 분리
-- [ ] 번역 대상 언어 정책 결정
-- [ ] Conversation Translation 구현
-- [ ] Translation 테스트
+- [x] Translation Service 설계
+- [x] Translation Data Model 설계
+- [x] 원본 데이터와 번역 데이터 분리
+- [x] 환경 설정 기반 단일 번역 대상 언어 정책 (`ko` 기본값)
+- [x] Conversation 종료 및 Message 수정 기반 번역 작업 생성
+- [x] bounded queue / single worker / lifecycle 구현
+- [x] Gemini-first / NVIDIA fallback 및 출력 무결성 검사
+- [x] Translation 단위 및 Pipeline Integration 테스트
 - [ ] 실제 Discord Integration Test
+
+현재 자동화된 Pipeline은 Message별 원문 언어와 content hash를 사용해 파생
+번역을 저장한다. 분석 결과가 번역 데이터를 소비하는 단계, 영속 Queue,
+재시작 복구, 자동 재시도는 후속 작업이다.
 
 ### Data Principle
 
@@ -836,16 +842,16 @@ Discord
 - [x] 실제 Discord 분석 결과 검증
 - [x] 전체 테스트 100 PASS
 
-# Sprint 7 — Translation Service
+# Sprint 7 — Translation Service ✅ (live integration verification pending)
 
-- [ ] 다국어 Conversation 처리
-- [ ] Language Distribution
+- [x] Message별 원문 언어 기반 다국어 Conversation 처리
+- [x] Language Distribution
 - [ ] 대표 언어 및 혼용 언어 정책
-- [ ] Translation Service
-- [ ] Translation Data Model
-- [ ] 원본 데이터와 번역 데이터 분리
-- [ ] Conversation Translation
-- [ ] Translation 테스트
+- [x] Translation Service
+- [x] Translation Data Model
+- [x] 원본 데이터와 번역 데이터 분리
+- [x] Conversation-triggered Message Translation
+- [x] Translation 자동화 테스트
 - [ ] 실제 Discord Integration Test
 
 # Future Data Collection
@@ -857,12 +863,12 @@ Discord
 - [ ] Voice Session 저장 구조
 - [ ] 실제 Discord Voice Integration Test
 
-## Sprint 7
+## Sprint 7 후속
 
-- 다국어 Conversation 처리
-- Language Distribution
 - 대표 언어 / 혼용 언어 정책
-- Translation Service
+- Translation 결과의 Analysis Pipeline 연동
+- 영속 Queue / 재시작 복구 / 재시도 필요성 검토
+- 실제 Discord 및 외부 Provider 통합 검증
 
 ## Sprint 8
 

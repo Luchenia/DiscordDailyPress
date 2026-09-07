@@ -1,6 +1,6 @@
 # Project Chronicle / DiscordDailyPress
 
-Project Chronicle is a Discord data collection and analysis system that is being built toward AI-assisted newspaper generation. It currently collects guild messages, preserves their raw records, and provides channel-scoped analysis and statistics in Discord. Automatic translation and AI newspaper generation are not implemented yet.
+Project Chronicle is a Discord data collection and analysis system that is being built toward AI-assisted newspaper generation. It currently collects guild messages, preserves their raw records, provides channel-scoped analysis and statistics in Discord, and stores derived message translations without changing the source messages. Topic detection, summarization, and AI newspaper generation are not implemented yet.
 
 ## Current capabilities
 
@@ -9,13 +9,18 @@ Project Chronicle is a Discord data collection and analysis system that is being
 - Prevent duplicate Discord create events from creating duplicate rows or conversation entries.
 - Group short message conversations in memory and detect their language.
 - Restrict analysis to enabled `CollectionChannel` records and show KST-based statistics in Discord embeds.
-- Manage the `messages.deleted_at` schema change with Alembic.
+- Queue translation work after conversation processing or message edits for enabled analysis channels.
+- Translate with Gemini first and NVIDIA as fallback, rejecting outputs that alter protected Discord, URL, code, emoji, or Markdown tokens.
+- Store translations in `message_translations` by source-content hash while preserving `messages.content`.
+- Manage the `messages.deleted_at` and `message_translations` schema changes with Alembic.
 
 ## Architecture at a glance
 
 `Discord Gateway -> ChronicleBot -> MessageCollector -> DTO/Mapper -> MessageService -> Repository -> SQLite`
 
 `ConversationBuffer` sits alongside message persistence for short-lived in-memory conversation grouping. Analysis resolves enabled channels through `CollectionChannel` and produces statistics from stored messages.
+
+When at least one translation API key is configured, completed conversations produce bounded in-memory translation jobs. A single asynchronous worker calls the configured providers and stores current, non-deleted results as derived rows. Database work runs outside the Discord event loop.
 
 ## Development setup
 
@@ -31,15 +36,19 @@ This activation-free PowerShell setup also works when script execution policy bl
 `Activate.ps1`. Use `.\.venv\Scripts\python.exe` in place of `python` for the
 commands below if the environment is not activated.
 
-On Ubuntu/Linux, ensure Python 3.11 includes venv support (`python3.11-venv` in
-Ubuntu packages), then run:
+The central development environment is the Ubuntu remote host `chronicle-dev` with
+the repository at `/home/amadeus/projects/DiscordDailyPress`. Its environment is
+managed with `uv`; it intentionally does not require `pip` inside `.venv`:
 
 ```bash
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
-cp .env.example .env
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python -r requirements-dev.txt
+cp -n .env.example .env
 ```
+
+On another Ubuntu/Linux host, a standard Python 3.11 virtual environment with
+`pip` is also supported. Install the Ubuntu `python3.11-venv` package first when
+needed, then use `python3.11 -m venv .venv` and install `requirements-dev.txt`.
 
 `requirements-dev.txt` installs the runtime dependencies plus the test runner and
 the legacy `langdetect` package used by the language-detection benchmark tests.
@@ -49,20 +58,20 @@ Configure `.env` before running. At minimum, provide the Discord bot settings re
 
 Run the bot:
 
-```powershell
-python main.py
+```bash
+.venv/bin/python main.py
 ```
 
 Run tests:
 
-```powershell
-python -m pytest
+```bash
+.venv/bin/python -m pytest
 ```
 
 Apply database migrations:
 
-```powershell
-python -m alembic upgrade head
+```bash
+.venv/bin/python -m alembic upgrade head
 ```
 
 The SQLite database is stored at `storage/database/chronicle.db`. For an existing database, apply migrations before running code that requires the newer schema. The Alembic baseline and migrations are designed to preserve existing rows and content.
@@ -76,4 +85,4 @@ The SQLite database is stored at `storage/database/chronicle.db`. For an existin
 
 ## Current status and roadmap
 
-The implemented system covers collection, raw-data preservation, message lifecycle handling, language detection, scoped analysis, and statistics. Translation workflows and automated AI newspaper generation remain future work; they are not represented as completed features in this repository.
+The implemented system covers collection, raw-data preservation, message lifecycle handling, language detection, scoped analysis and statistics, and the automatic translation producer/queue/worker/storage pipeline. Translation output is not yet consumed by analysis or newspaper generation, and the queue is in-memory with no restart recovery or automatic retry. Live Discord and external-provider validation on a new host requires an explicit operational approval because it can contact external services and incur cost.

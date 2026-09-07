@@ -1325,3 +1325,51 @@ mention, URL, code, Markdown 보존 품질에서 우세했다.
 mention, URL, inline/fenced code 같은 출력 무결성 검증 실패도 failover 조건에
 포함해야 한다. Groq는 별도 검증 전까지 provider 순서에 확정적으로 포함하지
 않는다.
+
+# Sprint 7 — Translation Pipeline 구현 상태 (2026-09-07)
+
+## 완료
+
+- 원문과 분리된 `message_translations` 파생 데이터 Model / Repository / Alembic migration
+- Message ID, 대상 언어, 원문 content hash 기반 번역 식별과 중복 방지
+- bounded in-memory Queue와 single asynchronous Worker
+- Conversation 종료 및 Message 수정 commit 이후 번역 작업 생성
+- 활성 `CollectionChannel`만 번역 대상으로 사용하는 scope 정책
+- 삭제된 Message, 같은 대상 언어, stale content hash 번역 제외
+- Gemini Translation Provider
+- NVIDIA Translation Provider
+- Gemini-first Provider fallback
+- Discord mention, URL, inline/fenced code, emoji, Markdown 보존 검사
+- Bot 시작, queue drain, timeout, 종료 lifecycle 연동
+- DB 처리를 `asyncio.to_thread`로 분리하여 Discord event loop blocking 방지
+- Conversation flush부터 별도 번역 row 저장까지 자동화 Integration Test
+
+## 현재 계약
+
+- `messages.content`는 번역으로 덮어쓰지 않는다.
+- 각 Message의 원문 언어를 Provider의 source language로 사용한다.
+- 번역은 `TRANSLATION_TARGET_LANGUAGE`로 설정한 단일 대상 언어를 사용하며
+  기본값은 `ko`다.
+- 두 API key가 모두 있으면 Gemini 다음 NVIDIA 순서로 각각 한 번 시도한다.
+- Provider 오류뿐 아니라 출력 무결성 실패도 다음 Provider로 넘어가는 조건이다.
+- 원문 수정 중 생성된 오래된 결과와 삭제된 Message의 결과는 저장하지 않는다.
+
+## 남은 작업
+
+- 새 Ubuntu host에서 실제 Discord와 외부 Provider를 사용한 운영 통합 검증
+- 번역 결과를 Analysis / Topic Detection 입력으로 선택하는 정책과 조회 경로
+- process restart 후 Queue 복구와 자동 retry가 실제 운영에 필요한지 검토
+- 대표 언어 / mixed language 세부 정책
+
+외부 Discord/API 검증은 외부 상태 변경 또는 API 비용을 발생시킬 수 있으므로
+사용자 approval 이후 별도로 수행한다.
+
+## Ubuntu 중앙 개발환경 검증
+
+- 중앙 개발 host: `chronicle-dev`
+- Project path: `/home/amadeus/projects/DiscordDailyPress`
+- Project Python: 3.11
+- `uv` 기반 `.venv`와 `requirements-dev.txt` 설치 절차 문서화
+- Translation 관련 회귀 테스트: 117 passed
+- 전체 자동화 테스트: 234 passed, 3 deprecation warnings
+- 실제 SQLite DB와 외부 Discord / Translation API를 사용하지 않고 검증

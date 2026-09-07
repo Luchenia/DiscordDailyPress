@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Translation
+
+- Added derived `message_translations` storage keyed by message, target language, and source-content hash without overwriting raw message content.
+- Added a bounded translation queue and single asynchronous worker with stale-source, edit, delete, duplicate, and shutdown handling.
+- Added Gemini and NVIDIA translation providers in fallback order, with protected-token output integrity validation.
+- Connected conversation completion and message edits to translation job production for enabled analysis channels.
+- Added an integration test covering conversation flush through derived translation persistence.
+
+### Development environment
+
+- Declared runtime and test dependencies for the supported Python 3.11 environment.
+- Documented the central Ubuntu `chronicle-dev` environment and its `uv`-managed setup.
+
 ### Stabilization
 
 - Clarified that `CollectionChannel` selects analysis targets and does not control whether guild messages are collected.
