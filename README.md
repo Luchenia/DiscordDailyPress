@@ -23,10 +23,27 @@ Project Chronicle targets Python 3.11.
 
 ```powershell
 py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
 ```
+
+This activation-free PowerShell setup also works when script execution policy blocks
+`Activate.ps1`. Use `.\.venv\Scripts\python.exe` in place of `python` for the
+commands below if the environment is not activated.
+
+On Ubuntu/Linux, ensure Python 3.11 includes venv support (`python3.11-venv` in
+Ubuntu packages), then run:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+cp .env.example .env
+```
+
+`requirements-dev.txt` installs the runtime dependencies plus the test runner and
+the legacy `langdetect` package used by the language-detection benchmark tests.
+Use `requirements.txt` for a runtime-only installation.
 
 Configure `.env` before running. At minimum, provide the Discord bot settings required by your deployment, including `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID`. Other configured integration values should only be supplied when their corresponding integration is in use.
 
