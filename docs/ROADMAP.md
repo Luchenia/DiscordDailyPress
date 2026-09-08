@@ -628,10 +628,12 @@ Conversation 및 Topic 단위의 대화를 요약하여
 ## 계획
 
 - [ ] Conversation Summarization 설계
-- [ ] Topic 기반 요약
+- [x] Provider-independent Topic Summarization DTO / Service 계약
+- [x] Topic 기반 evidence membership 검증 경계
+- [ ] Production Topic Summarization provider 구현
 - [ ] 핵심 사건 / 발언 추출
 - [ ] 요약 결과 저장 구조 설계
-- [ ] Summarization 테스트
+- [x] Summarization foundation 단위 테스트
 
 ---
 
@@ -881,7 +883,8 @@ Discord
 
 ## Sprint 9
 
-- Summarization
+- Topic Summarization foundation 완료
+- Production summarizer, 핵심 사건 추출, 저장 및 실제 파이프라인 연결 필요
 
 ## Sprint 10
 

@@ -25,6 +25,14 @@
 - Added strict partition validation for topic membership and explicit unassigned/noise messages, rejecting unknown, duplicate, or omitted message IDs.
 - Added deterministic provider tests without external API calls or persistence changes.
 
+### Topic summarization foundation
+
+- Added immutable provider inputs that carry detected topic identity, optional labels, explicit output language, and prepared analysis messages without raw message content.
+- Added an asynchronous provider boundary and service that require exactly one nonblank, evidence-linked summary per detected topic.
+- Added strict validation for duplicate, unknown, or omitted topics and for empty, duplicate, or cross-topic evidence message IDs.
+- Preserved analysis scope, detector/summarizer identity, output language, prepared source hashes, translation provenance, and explicit unassigned/noise messages in summary results.
+- Added deterministic topic-message ordering and provider-independent tests without external API calls or persistence changes.
+
 ### Development environment
 
 - Declared runtime and test dependencies for the supported Python 3.11 environment.

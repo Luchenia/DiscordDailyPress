@@ -1,6 +1,6 @@
 # Project Chronicle / DiscordDailyPress
 
-Project Chronicle is a Discord data collection and analysis system that is being built toward AI-assisted newspaper generation. It currently collects guild messages, preserves their raw records, provides channel-scoped analysis and statistics in Discord, and stores derived message translations without changing the source messages. Topic detection, summarization, and AI newspaper generation are not implemented yet.
+Project Chronicle is a Discord data collection and analysis system that is being built toward AI-assisted newspaper generation. It currently collects guild messages, preserves their raw records, provides channel-scoped analysis and statistics in Discord, and stores derived message translations without changing the source messages. Provider-independent topic detection and topic summarization boundaries are implemented, but production providers and AI newspaper generation are not.
 
 ## Current capabilities
 
@@ -13,6 +13,7 @@ Project Chronicle is a Discord data collection and analysis system that is being
 - Translate with Gemini first and NVIDIA as fallback, rejecting outputs that alter protected Discord, URL, code, emoji, or Markdown tokens.
 - Store translations in `message_translations` by source-content hash while preserving `messages.content`.
 - Prepare analysis datasets with current translations when available, while retaining raw content, source language, and translation provenance explicitly.
+- Prepare deterministic topic-summary inputs from validated detected topics and validate evidence-linked summaries without exposing raw message content.
 - Manage the `messages.deleted_at` and `message_translations` schema changes with Alembic.
 
 ## Architecture at a glance
@@ -86,4 +87,4 @@ The SQLite database is stored at `storage/database/chronicle.db`. For an existin
 
 ## Current status and roadmap
 
-The implemented system covers collection, raw-data preservation, message lifecycle handling, language detection, scoped analysis and statistics, and the automatic translation producer/queue/worker/storage pipeline. Analysis dataset preparation resolves current translations in a batch and falls back to clearly marked raw source text when a translation is missing; stale translations are preserved but never selected. A provider-independent topic detection boundary now consumes prepared analysis text and validates topic membership, but no production detector or topic persistence has been selected. Newspaper generation remains unimplemented, and the queue is in-memory with no restart recovery or automatic retry. Live Discord and external-provider validation on a new host requires an explicit operational approval because it can contact external services and incur cost.
+The implemented system covers collection, raw-data preservation, message lifecycle handling, language detection, scoped analysis and statistics, and the automatic translation producer/queue/worker/storage pipeline. Analysis dataset preparation resolves current translations in a batch and falls back to clearly marked raw source text when a translation is missing; stale translations are preserved but never selected. Provider-independent topic detection and summarization boundaries now consume prepared analysis text, validate complete topic coverage, and require summary evidence to belong to its detected topic. No production detector, summarizer, or topic/summary persistence has been selected. Newspaper generation remains unimplemented, and the queue is in-memory with no restart recovery or automatic retry. Live Discord and external-provider validation on a new host requires an explicit operational approval because it can contact external services and incur cost.

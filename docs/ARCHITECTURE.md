@@ -67,6 +67,25 @@ No production detector, clustering policy, external provider, or persistence pat
 is selected yet. Topic count, hierarchy, thresholds, and provider choice remain
 behind the provider interface.
 
+## Topic summarization foundation
+
+`TopicSummarizationService` consumes a validated `TopicDetectionResultDTO` and
+creates immutable provider inputs for each detected topic. Inputs contain only the
+prepared `TopicDetectionMessageDTO` records, the topic identity and optional label,
+and an explicit output language. Topic members are ordered by `created_at` and then
+message ID before the provider boundary. Raw `messages.content` is not part of this
+contract.
+
+The provider returns a summary and evidence message IDs for every detected topic.
+The service rejects blank summaries, empty or duplicate evidence, evidence outside
+the corresponding topic, and duplicate, unknown, or omitted topic summaries. It
+materializes results in detected-topic order while retaining every prepared topic
+message, source-content hash, translation ID, detector/summarizer identity, analysis
+scope, output language, and explicit unassigned/noise messages.
+
+No production summarizer, persistence path, bot wiring, or newspaper composition is
+selected yet.
+
 ## Analysis scope and statistics
 
 Collection and analysis are intentionally separate:
@@ -99,6 +118,6 @@ The time contract is:
 - Collection policy and analysis inclusion are separate concerns.
 
 Automatic translation production, current-translation analysis preparation, and
-the provider-independent topic detection contract are implemented. A production
-topic detector, summarization, and AI newspaper generation remain future
+provider-independent topic detection and summarization contracts are implemented.
+Production topic/summarization providers and AI newspaper generation remain future
 architecture.

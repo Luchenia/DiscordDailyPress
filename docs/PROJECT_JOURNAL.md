@@ -1458,3 +1458,41 @@ Topic 수, hierarchy, clustering threshold, provider 선택, persistence schema�
 - Analysis/translation 관련 회귀 테스트: 21 passed
 - 제한된 sandbox에서 종료 가능한 전체 회귀 범위: 229 passed, 기존 warning 3개
 - 외부 provider/API 및 production DB mutation 없음
+
+# Sprint 9 — Topic Summarization Foundation (2026-09-08)
+
+## 구현
+
+- `TopicSummarizationProvider` 비동기 protocol을 추가했다.
+- `TopicSummarizationService`가 검증된 `TopicDetectionResultDTO`를 받아 topic별
+  provider 입력과 evidence-linked summary 결과를 만드는 경계를 추가했다.
+- provider 입력은 topic ID, optional label, 명시적 output language, prepared
+  `TopicDetectionMessageDTO`만 포함한다.
+- topic message는 `created_at`, message ID 순으로 정렬하여 provider 입력을
+  deterministic하게 유지한다.
+- 결과는 analysis scope, detector/summarizer ID, output language, topic identity,
+  source hash, translation provenance와 unassigned/noise message를 보존한다.
+
+## 안전 계약
+
+- raw `messages.content` field는 summarization provider 계약에 노출하지 않는다.
+- 모든 detected topic은 정확히 하나의 summary를 가져야 한다.
+- 중복, unknown, 누락 topic summary를 거부한다.
+- blank summary와 empty/duplicate evidence를 거부한다.
+- evidence message ID는 해당 topic membership에 속해야 한다.
+- unassigned/noise message는 summary topic으로 변환하지 않고 결과 provenance에
+  명시적으로 유지한다.
+- 저장소, schema, production DB, bot runtime과 외부 API를 변경하지 않는다.
+
+## 검증
+
+- Topic Summarization focused tests: 16 passed
+- Topic Detection / Analysis Translation 관련 회귀 테스트: 21 passed
+- 제한된 sandbox에서 종료 가능한 전체 회귀 범위: 245 passed, 기존 warning 3개
+- DB-thread test 실행이 가능한 환경의 전체 회귀 범위: 262 passed, 기존 warning 3개
+- production Chronicle DB size, mtime, SHA-256 불변 확인
+
+## 남은 결정
+
+Production topic detector/summarizer provider, 입력 크기 제한, topic 정책,
+persistence, bot wiring과 newspaper composition은 후속 단계에서 결정한다.
