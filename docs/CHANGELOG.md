@@ -41,6 +41,15 @@
 - Ordered analysis-scope messages by creation time and Discord message ID for deterministic provider input.
 - Preserved scope, output language, provider identities, dataset metadata, source hashes, translation provenance, evidence, and explicit unassigned/noise messages in the orchestration result.
 
+### Deterministic newspaper composer foundation
+
+- Added immutable provider-independent newspaper edition, topic section, and content-free message provenance DTOs.
+- Added a pure in-memory composer from validated analysis-run results to deterministic Markdown without another AI generation stage.
+- Ordered sections chronologically by earliest topic message time and stable message identity, with topic ID as a final tie-breaker.
+- Derived edition dates and displayed scope boundaries in KST while retaining exact UTC scope boundaries for auditability.
+- Preserved validated summaries, evidence IDs/counts, source hashes, translation provenance, and explicit unassigned/noise messages without rendering prepared or raw message content.
+- Escaped dynamic HTML and Markdown syntax so provider-originated labels, summaries, and identifiers cannot alter the fixed edition structure.
+
 ### Development environment
 
 - Declared runtime and test dependencies for the supported Python 3.11 environment.

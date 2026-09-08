@@ -1534,3 +1534,58 @@ persistence, bot wiring과 newspaper composition은 후속 단계에서 결정�
 
 Production provider/model, 실제 input limit 값, batching, topic policy, persistence,
 runtime wiring과 newspaper composition은 후속 단계에서 결정한다.
+
+# Deterministic Newspaper Composer Foundation (2026-09-09)
+
+## 구현
+
+- immutable `NewspaperEditionMetadataDTO`, `NewspaperSectionDTO`,
+  `NewspaperMessageProvenanceDTO`, `NewspaperResultDTO`를 추가했다.
+- `NewspaperComposerService`가 검증된 `AnalysisRunResultDTO`를 순수 in-memory
+  newspaper artifact와 Markdown으로 변환한다.
+- section은 각 topic의 최초 prepared message `created_at`, message ID, topic ID
+  순으로 정렬한다. message 수를 중요도 점수로 사용하거나 AI ranking 단계를
+  추가하지 않는다.
+- topic 내부와 unassigned/noise provenance는 `created_at`, message ID 순으로
+  정렬한다.
+- analysis scope 시작 시각을 KST로 변환한 날짜를 edition date로 사용하고,
+  scope 양 끝을 KST로 표시한다. end boundary는 exclusive임을 명시하며 정확한
+  UTC boundary도 DTO에 유지한다.
+
+## artifact 계약
+
+- Markdown은 고정 title, edition metadata, ordered topic sections, 마지막
+  unassigned/noise section 순서다.
+- 각 topic section은 제공된 label, 검증된 summary, topic message count,
+  evidence ID/count, content-free source provenance만 표시한다.
+- source provenance는 message/channel ID, UTC created time, source hash,
+  source/analysis language, raw/translation 구분과 translation ID를 보존한다.
+- label이 없으면 번호가 있는 구조적 `Topic N` heading만 사용한다.
+- zero-topic run은 topic을 만들지 않고 factual empty state와 명시적
+  unassigned/noise count/provenance를 표시한다.
+
+## 안전 계약
+
+- composer에는 provider, 외부 API, database, filesystem, 현재 clock dependency가
+  없다.
+- `analysis_content`와 raw `messages.content`를 DTO 또는 Markdown에 복사하지
+  않는다.
+- 동적 문자열의 HTML과 Markdown 구문을 escape하여 edition structure를 변경할
+  수 없게 한다.
+- scope-derived date와 안정된 ordering만 사용하므로 동일 입력은 byte-identical
+  Markdown을 만든다.
+- persistence, schema, migration, bot/runtime, file output을 변경하지 않는다.
+
+## 검증
+
+- Newspaper Composer focused tests: 8 passed
+- Analysis Run / Topic Detection / Topic Summarization / Analysis Service 회귀:
+  37 passed
+- 전체 자동화 테스트: 280 passed, 기존 warning 3개
+- production Chronicle DB size, mtime, SHA-256 불변 확인
+
+## 남은 결정
+
+Production detector/summarizer와 input limits, runtime orchestration entry point,
+Discord 전달 형식/길이 분할, artifact persistence/retention은 후속 단계에서
+결정한다.

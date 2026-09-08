@@ -892,4 +892,5 @@ Discord
 
 ## Sprint 10
 
-- Newspaper Generator
+- Deterministic Newspaper Composer foundation 완료
+- Production detector/summarizer, runtime 연결, newspaper delivery 필요

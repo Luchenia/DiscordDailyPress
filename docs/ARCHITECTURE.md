@@ -107,6 +107,41 @@ topic summaries with prepared-message provenance, and explicit unassigned/noise
 messages. It does not expose the raw `AnalysisDatasetDTO` to a future newspaper
 composer.
 
+## Deterministic newspaper composer foundation
+
+`NewspaperComposerService` is a pure in-memory boundary from a validated
+`AnalysisRunResultDTO` to an immutable `NewspaperResultDTO`. It performs no provider,
+network, database, filesystem, or clock call. The result contains immutable edition
+metadata, detector/summarizer identity, output language, ordered topic sections,
+explicit unassigned/noise provenance, and byte-deterministic Markdown.
+
+Sections are ordered chronologically by their earliest prepared message's
+`created_at`, then that message's stable ID, with topic ID as a final tie-breaker.
+This uses existing validated source data without introducing an importance score or
+AI ranking stage. Messages within each section and unassigned/noise messages remain
+ordered by `created_at` and message ID.
+
+The edition date is the inclusive analysis-scope start converted to KST. The
+Markdown displays both scope boundaries in KST and marks the end boundary as
+exclusive, while the DTO retains the exact UTC boundaries for auditing. Because the
+date comes from the scope rather than the current clock, composing the same result
+produces identical bytes.
+
+Each section renders only its validated label when present, validated summary,
+message/evidence counts, evidence message IDs, and content-free provenance. That
+provenance includes message/channel identity, UTC creation time, source hash,
+source/analysis languages, raw-versus-translation source, and translation ID. The
+composer never copies or renders `analysis_content` or raw `messages.content`.
+Dynamic strings are HTML-escaped and Markdown punctuation is backslash-escaped so
+labels, summaries, and identifiers cannot create new edition headings, lists,
+links, tables, or raw HTML structure.
+
+The Markdown structure is a fixed title, edition metadata, ordered topic sections
+with summary and provenance subsections, and a final unassigned/noise section. Zero
+topics produce an empty factual topic section and retain any unassigned/noise
+provenance. File output, retention, Discord delivery, and runtime wiring remain
+future boundaries.
+
 ## Analysis scope and statistics
 
 Collection and analysis are intentionally separate:
@@ -139,6 +174,7 @@ The time contract is:
 - Collection policy and analysis inclusion are separate concerns.
 
 Automatic translation production, current-translation analysis preparation, and
-provider-independent topic detection, summarization, and analysis-run orchestration
-contracts are implemented. Production topic/summarization providers and AI
-newspaper generation remain future architecture.
+provider-independent topic detection, summarization, analysis-run orchestration,
+and deterministic newspaper composition contracts are implemented. Production
+topic/summarization providers and newspaper persistence/delivery remain future
+architecture.
