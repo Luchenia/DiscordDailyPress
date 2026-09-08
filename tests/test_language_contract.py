@@ -71,7 +71,7 @@ def create_dto(
     )
 
 
-def test_flush_stores_source_languages_and_analysis_ignores_output_language(
+def test_flush_stores_source_languages_and_analysis_falls_back_to_raw_text(
     test_session_local,
     monkeypatch,
 ):

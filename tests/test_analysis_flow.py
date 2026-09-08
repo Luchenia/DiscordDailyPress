@@ -85,6 +85,7 @@ def test_analysis_flow_connects_request_to_statistics():
 
     service.build_dataset.assert_called_once_with(
         scope,
+        output_language="ko",
     )
 
     statistics_service.analyze.assert_called_once_with(
@@ -135,6 +136,7 @@ def test_analysis_flow_does_not_call_statistics_when_dataset_creation_fails():
 
     service.build_dataset.assert_called_once_with(
         scope,
+        output_language="ko",
     )
 
     statistics_service.analyze.assert_not_called()

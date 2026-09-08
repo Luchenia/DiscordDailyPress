@@ -10,6 +10,14 @@
 - Connected conversation completion and message edits to translation job production for enabled analysis channels.
 - Added an integration test covering conversation flush through derived translation persistence.
 
+### Analysis translation consumption
+
+- Added a batch repository read that selects translations matching each message's current source-content hash while preserving stale rows.
+- Added an analysis text resolver with an isolated missing-translation policy and raw-source fallback.
+- Extended analysis messages with explicit prepared text, language, source kind, current hash, and translation provenance without changing raw fields.
+- Connected `AnalysisRequestDTO.output_language` to AnalysisDataset preparation while keeping existing source-language statistics unchanged.
+- Normalized historical nullable or blank source-language values to the existing `unknown` contract during analysis preparation without updating stored messages.
+
 ### Development environment
 
 - Declared runtime and test dependencies for the supported Python 3.11 environment.

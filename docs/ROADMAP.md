@@ -560,11 +560,13 @@ Conversation 데이터를 AI 분석에 사용할 수 있도록
 - [x] bounded queue / single worker / lifecycle 구현
 - [x] Gemini-first / NVIDIA fallback 및 출력 무결성 검사
 - [x] Translation 단위 및 Pipeline Integration 테스트
+- [x] current translation의 AnalysisDataset batch read / consumption
 - [ ] 실제 Discord Integration Test
 
 현재 자동화된 Pipeline은 Message별 원문 언어와 content hash를 사용해 파생
-번역을 저장한다. 분석 결과가 번역 데이터를 소비하는 단계, 영속 Queue,
-재시작 복구, 자동 재시도는 후속 작업이다.
+번역을 저장한다. AnalysisDataset은 현재 원문 hash와 정확히 일치하는 번역만
+선택하고, 번역이 없으면 provenance가 명시된 원문으로 fallback한다. 영속
+Queue, 재시작 복구, 자동 재시도는 후속 작업이다.
 
 ### Data Principle
 
@@ -852,6 +854,7 @@ Discord
 - [x] 원본 데이터와 번역 데이터 분리
 - [x] Conversation-triggered Message Translation
 - [x] Translation 자동화 테스트
+- [x] Translation 결과의 AnalysisDataset 연동
 - [ ] 실제 Discord Integration Test
 
 # Future Data Collection
@@ -866,7 +869,6 @@ Discord
 ## Sprint 7 후속
 
 - 대표 언어 / 혼용 언어 정책
-- Translation 결과의 Analysis Pipeline 연동
 - 영속 Queue / 재시작 복구 / 재시도 필요성 검토
 - 실제 Discord 및 외부 Provider 통합 검증
 

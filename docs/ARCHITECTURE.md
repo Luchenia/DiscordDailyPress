@@ -23,6 +23,32 @@ Discord Gateway events are received by `ChronicleBot`. The bot delegates message
 
 On flush, the current language detection path uses the fastText-backed `fasttext-langdetect` integration through the language service. This is language metadata processing, not a translation pipeline.
 
+## Translation production and analysis consumption
+
+Translation is derived processing and never changes `messages.content`. Conversation
+completion and message edits can enqueue bounded in-memory jobs for enabled analysis
+channels. The asynchronous worker uses configured translation providers and stores
+results in `message_translations`, identified by message, target language, and exact
+source-content hash.
+
+`AnalysisTextResolver` is the read boundary between stored translations and analysis
+preparation. It computes current source hashes, reads translation candidates for all
+eligible messages in one repository call, and selects only exact hash matches. The
+resulting `AnalysisMessageDTO` keeps `content` and `language` as raw-source fields and
+exposes the selected `analysis_content`, `analysis_language`, source kind, current
+source hash, and optional translation ID separately.
+
+- Same-language messages use raw content without a translation lookup.
+- Missing or blank translations use the configured missing-translation policy; the
+  default policy keeps analysis available with explicitly marked raw text.
+- Historical nullable or blank source-language values are normalized to the existing
+  `unknown` analysis contract at this read boundary; stored message rows are untouched.
+- Stale translation rows remain preserved for history but are never selected.
+- Soft-deleted messages remain excluded by normal analysis scope queries and are also
+  rejected by the text resolver if passed directly.
+- Analysis preparation performs database reads only. It does not call translation
+  providers or any external network API.
+
 ## Analysis scope and statistics
 
 Collection and analysis are intentionally separate:
@@ -54,4 +80,6 @@ The time contract is:
 - Discord deletion is soft delete, preserving the original row/content and recording deletion history.
 - Collection policy and analysis inclusion are separate concerns.
 
-Automatic translation and AI newspaper generation are project goals, not current production architecture.
+Automatic translation production and current-translation analysis preparation are
+implemented. Topic detection, summarization, and AI newspaper generation remain
+future architecture.

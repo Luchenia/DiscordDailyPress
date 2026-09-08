@@ -5,6 +5,7 @@ from app.dto.analysis_dataset_dto import (
     AnalysisDatasetMetadataDTO,
 )
 from app.dto.analysis_message_dto import AnalysisMessageDTO
+from app.dto.analysis_text_dto import AnalysisTextSource
 from app.dto.analysis_scope_dto import AnalysisScopeDTO
 from app.dto.statistics_result_dto import StatisticsResultDTO
 from app.services.statistics_service import StatisticsService
@@ -33,6 +34,11 @@ def create_analysis_message(
 
         content=content,
         language=language,
+
+        analysis_content=content,
+        analysis_language=language,
+        analysis_content_source=AnalysisTextSource.RAW,
+        source_content_hash="test-source-hash",
 
         created_at=datetime.now(timezone.utc),
     )

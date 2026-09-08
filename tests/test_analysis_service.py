@@ -5,6 +5,8 @@ from app.dto.analysis_scope_dto import AnalysisScopeDTO
 from app.models.message import Message
 from app.services.analysis_service import AnalysisService
 from app.dto.analysis_message_dto import AnalysisMessageDTO
+from app.dto.analysis_text_dto import AnalysisTextSource
+from app.utils.content_hash import calculate_source_content_hash
 
 
 def create_message(
@@ -136,6 +138,13 @@ def test_to_analysis_message_converts_message():
 
     assert result.content == "테스트 메시지"
     assert result.language == "ko"
+    assert result.analysis_content == "테스트 메시지"
+    assert result.analysis_language == "ko"
+    assert result.analysis_content_source is AnalysisTextSource.RAW
+    assert result.source_content_hash == calculate_source_content_hash(
+        "테스트 메시지"
+    )
+    assert result.translation_id is None
     assert result.created_at == created_at
 
 

@@ -1373,3 +1373,53 @@ mention, URL, inline/fenced code 같은 출력 무결성 검증 실패도 failov
 - Translation 관련 회귀 테스트: 117 passed
 - 전체 자동화 테스트: 234 passed, 3 deprecation warnings
 - 실제 SQLite DB와 외부 Discord / Translation API를 사용하지 않고 검증
+
+# Sprint 7.1 — Translation Analysis Consumption (2026-09-08)
+
+## 목표
+
+저장된 번역 중 현재 Message content와 정확히 일치하는 파생 데이터만
+AnalysisDataset 준비 단계에서 안전하게 선택한다.
+
+## 구현
+
+- `MessageTranslationRepository.get_current_batch` 단일 조회 경계 추가
+- `AnalysisTextResolver`와 `MissingTranslationPolicy` 도입
+- 기본 `RawSourceFallbackPolicy` 구현
+- `AnalysisRequestDTO.output_language`를 Dataset 준비 경로에 연결
+- `AnalysisMessageDTO`에 다음 provenance 필드 추가
+  - `analysis_content`
+  - `analysis_language`
+  - `analysis_content_source`
+  - `source_content_hash`
+  - `translation_id`
+
+기존 `content`와 `language`는 원문과 원문 언어로 유지한다. 따라서 현재
+StatisticsService의 메시지 길이와 언어 분포 의미는 바뀌지 않으며, 후속 AI
+분석은 `analysis_content`와 `analysis_language`를 명시적으로 사용할 수 있다.
+
+## 안전 계약
+
+- 현재 Message content hash와 일치하지 않는 stale translation은 선택하지 않는다.
+- stale row는 삭제하거나 갱신하지 않고 그대로 보존한다.
+- 같은 언어 Message는 번역 조회 없이 원문을 사용한다.
+- 번역이 없거나 빈 번역이면 기본 policy가 원문으로 fallback한다.
+- 역사 DB의 nullable / blank source language는 저장값을 수정하지 않고 분석
+  경계에서 기존 `unknown` 계약으로 정규화한다.
+- fallback 결과는 source kind와 실제 언어가 명시되어 downstream이 판단할 수 있다.
+- soft-deleted Message는 기존 Analysis query에서 제외하며 resolver 직접 입력도 거부한다.
+- Dataset 준비 과정은 DB read만 수행하고 외부 Provider/API를 호출하지 않는다.
+- 실제 Chronicle DB와 `messages.content`를 수정하지 않는다.
+
+## 검증
+
+- translation-consumption focused tests: 6 passed
+- related Analysis regression tests: 60 passed
+- full test suite: 240 passed, 3 existing deprecation warnings
+- current / stale / missing / same-language / edited-new-hash / batch / deleted 시나리오 검증
+- mock provider와 in-memory SQLite만 사용하여 외부 API 호출 없음
+
+## 다음 단계
+
+Sprint 8 Topic Detection이 `AnalysisMessageDTO.analysis_content`를 입력으로
+사용하도록 provider-independent service / DTO 계약을 먼저 설계한다.

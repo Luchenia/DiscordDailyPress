@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -20,6 +21,32 @@ class TranslationSourceSnapshot:
 
 
 class MessageTranslationRepository:
+    def get_current_batch(
+        self,
+        source_hashes_by_message_id: Mapping[int, str],
+        target_language: str,
+    ) -> dict[int, MessageTranslation]:
+        """Return exact current translations in one read; preserve stale rows."""
+        if not source_hashes_by_message_id:
+            return {}
+
+        with SessionLocal() as session:
+            translations = session.scalars(
+                select(MessageTranslation).where(
+                    MessageTranslation.message_id.in_(
+                        list(source_hashes_by_message_id)
+                    ),
+                    MessageTranslation.target_language == target_language,
+                )
+            )
+
+            return {
+                translation.message_id: translation
+                for translation in translations
+                if translation.source_content_hash
+                == source_hashes_by_message_id[translation.message_id]
+            }
+
     def get_source_snapshot(self, message_id: int) -> TranslationSourceSnapshot | None:
         """Open/close the session in the caller's DB thread; return plain data."""
         with SessionLocal() as session:

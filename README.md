@@ -12,6 +12,7 @@ Project Chronicle is a Discord data collection and analysis system that is being
 - Queue translation work after conversation processing or message edits for enabled analysis channels.
 - Translate with Gemini first and NVIDIA as fallback, rejecting outputs that alter protected Discord, URL, code, emoji, or Markdown tokens.
 - Store translations in `message_translations` by source-content hash while preserving `messages.content`.
+- Prepare analysis datasets with current translations when available, while retaining raw content, source language, and translation provenance explicitly.
 - Manage the `messages.deleted_at` and `message_translations` schema changes with Alembic.
 
 ## Architecture at a glance
@@ -85,4 +86,4 @@ The SQLite database is stored at `storage/database/chronicle.db`. For an existin
 
 ## Current status and roadmap
 
-The implemented system covers collection, raw-data preservation, message lifecycle handling, language detection, scoped analysis and statistics, and the automatic translation producer/queue/worker/storage pipeline. Translation output is not yet consumed by analysis or newspaper generation, and the queue is in-memory with no restart recovery or automatic retry. Live Discord and external-provider validation on a new host requires an explicit operational approval because it can contact external services and incur cost.
+The implemented system covers collection, raw-data preservation, message lifecycle handling, language detection, scoped analysis and statistics, and the automatic translation producer/queue/worker/storage pipeline. Analysis dataset preparation resolves current translations in a batch and falls back to clearly marked raw source text when a translation is missing; stale translations are preserved but never selected. Topic detection and newspaper generation do not yet consume those prepared datasets, and the queue is in-memory with no restart recovery or automatic retry. Live Discord and external-provider validation on a new host requires an explicit operational approval because it can contact external services and incur cost.

@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import field_validator
 
+from app.dto.analysis_text_dto import AnalysisTextSource
 from app.utils.datetime_utils import ensure_utc
 
 
@@ -24,6 +25,14 @@ class AnalysisMessageDTO(BaseModel):
     content: str
     # Detected language of the message's raw source content.
     language: str
+
+    # Text selected for downstream AI analysis. Raw fields above remain available
+    # for statistics, provenance, and source-of-truth access.
+    analysis_content: str
+    analysis_language: str
+    analysis_content_source: AnalysisTextSource
+    source_content_hash: str
+    translation_id: int | None = None
 
     created_at: datetime
 
