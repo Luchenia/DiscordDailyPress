@@ -608,11 +608,12 @@ Conversation에서 어떤 주제의 대화가 이루어졌는지
 
 ## 계획
 
-- [ ] Topic Detection 설계
+- [x] Provider-independent Topic Detection DTO / Service 계약
 - [ ] Topic 분류 기준 정의
-- [ ] Conversation → Topic Pipeline 구현
+- [x] AnalysisDataset → Topic proposal 검증 경계
+- [ ] Production Topic Detection provider 구현
 - [ ] Topic 저장 구조 설계
-- [ ] Topic Detection 테스트
+- [x] Topic Detection foundation 단위 테스트
 - [ ] 실제 Discord Integration Test
 
 ---
@@ -874,7 +875,9 @@ Discord
 
 ## Sprint 8
 
-- Topic Detection
+- Topic Detection foundation 완료
+- Topic 수 / hierarchy / threshold 정책과 production provider 선정 필요
+- 저장 및 실제 파이프라인 연결 필요
 
 ## Sprint 9
 

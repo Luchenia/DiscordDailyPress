@@ -18,6 +18,13 @@
 - Connected `AnalysisRequestDTO.output_language` to AnalysisDataset preparation while keeping existing source-language statistics unchanged.
 - Normalized historical nullable or blank source-language values to the existing `unknown` contract during analysis preparation without updating stored messages.
 
+### Topic detection foundation
+
+- Added provider-independent DTO and asynchronous service contracts that consume prepared `analysis_content` without exposing raw message content to detectors.
+- Preserved message identity, analysis/source languages, current-content hash, and translation provenance in topic membership results.
+- Added strict partition validation for topic membership and explicit unassigned/noise messages, rejecting unknown, duplicate, or omitted message IDs.
+- Added deterministic provider tests without external API calls or persistence changes.
+
 ### Development environment
 
 - Declared runtime and test dependencies for the supported Python 3.11 environment.

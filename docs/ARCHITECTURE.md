@@ -49,6 +49,24 @@ source hash, and optional translation ID separately.
 - Analysis preparation performs database reads only. It does not call translation
   providers or any external network API.
 
+## Topic detection foundation
+
+`TopicDetectionService` consumes an already prepared `AnalysisDatasetDTO`. It maps
+each analysis message to an immutable provider input containing
+`analysis_content`, analysis/source languages, message identity, and translation
+provenance. Raw `content` is deliberately absent from the provider contract.
+
+The provider-independent boundary returns opaque topic IDs, optional labels,
+message memberships, and explicit unassigned/noise message IDs. Before returning a
+result, the service verifies that provider output is an exact partition of the
+input dataset: IDs outside the dataset, duplicate topic or message assignments, and
+omitted messages are rejected. This keeps soft-deleted messages excluded by the
+upstream analysis policy and prevents a provider from reintroducing them.
+
+No production detector, clustering policy, external provider, or persistence path
+is selected yet. Topic count, hierarchy, thresholds, and provider choice remain
+behind the provider interface.
+
 ## Analysis scope and statistics
 
 Collection and analysis are intentionally separate:
@@ -80,6 +98,7 @@ The time contract is:
 - Discord deletion is soft delete, preserving the original row/content and recording deletion history.
 - Collection policy and analysis inclusion are separate concerns.
 
-Automatic translation production and current-translation analysis preparation are
-implemented. Topic detection, summarization, and AI newspaper generation remain
-future architecture.
+Automatic translation production, current-translation analysis preparation, and
+the provider-independent topic detection contract are implemented. A production
+topic detector, summarization, and AI newspaper generation remain future
+architecture.

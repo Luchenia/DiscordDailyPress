@@ -1423,3 +1423,38 @@ StatisticsService의 메시지 길이와 언어 분포 의미는 바뀌지 않�
 
 Sprint 8 Topic Detection이 `AnalysisMessageDTO.analysis_content`를 입력으로
 사용하도록 provider-independent service / DTO 계약을 먼저 설계한다.
+
+# Sprint 8 — Topic Detection Foundation (2026-09-08)
+
+## 구현
+
+- `TopicDetectionProvider` 비동기 protocol을 추가했다.
+- `TopicDetectionService`가 준비된 `AnalysisDatasetDTO`를 받아 provider용 입력과
+  Chronicle topic 결과를 만드는 경계를 추가했다.
+- provider 입력에는 raw `content`를 노출하지 않고 `analysis_content`, 분석/원문
+  언어, message identity, content source/hash, translation ID를 전달한다.
+- provider 결과는 topic ID, optional label, message membership, explicit
+  unassigned/noise ID로 구성한다.
+
+## 안전 계약
+
+- 입력 DTO는 immutable이며 translation/raw provenance 조합을 검증한다.
+- provider 결과는 모든 dataset message를 topic 또는 unassigned에 정확히 한 번
+  포함해야 한다.
+- dataset 밖의 ID, 중복 topic ID, 중복 membership, 누락 ID는 계약 오류로
+  거부한다.
+- soft-deleted Message는 기존 AnalysisDataset에서 제외되고 provider가 dataset
+  밖의 삭제 ID를 반환해도 다시 포함되지 않는다.
+- 저장소와 production DB를 변경하지 않으며 외부 API를 호출하지 않는다.
+
+## 남은 결정
+
+Topic 수, hierarchy, clustering threshold, provider 선택, persistence schema는
+운영 정책이 정해진 뒤 provider 및 repository 구현 단계에서 결정한다.
+
+## 검증
+
+- Topic Detection focused tests: 6 passed
+- Analysis/translation 관련 회귀 테스트: 21 passed
+- 제한된 sandbox에서 종료 가능한 전체 회귀 범위: 229 passed, 기존 warning 3개
+- 외부 provider/API 및 production DB mutation 없음
