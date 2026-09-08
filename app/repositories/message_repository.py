@@ -184,12 +184,17 @@ class MessageRepository:
         with SessionLocal() as session:
 
             result = session.scalars(
-                select(Message).where(
+                select(Message)
+                .where(
                     Message.guild_id == guild_id,
                     Message.channel_id.in_(channel_ids),
                     Message.created_at >= start_at,
                     Message.created_at < end_at,
                     Message.deleted_at.is_(None),
+                )
+                .order_by(
+                    Message.created_at,
+                    Message.discord_message_id,
                 )
             )
 

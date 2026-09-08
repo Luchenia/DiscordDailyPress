@@ -630,6 +630,9 @@ Conversation 및 Topic 단위의 대화를 요약하여
 - [ ] Conversation Summarization 설계
 - [x] Provider-independent Topic Summarization DTO / Service 계약
 - [x] Topic 기반 evidence membership 검증 경계
+- [x] AnalysisDataset → Topic Detection → Topic Summarization orchestration 경계
+- [x] Async caller를 위한 off-thread Dataset 준비 경계
+- [x] Provider 호출 전 explicit message / prepared-text size guard
 - [ ] Production Topic Summarization provider 구현
 - [ ] 핵심 사건 / 발언 추출
 - [ ] 요약 결과 저장 구조 설계
@@ -884,7 +887,8 @@ Discord
 ## Sprint 9
 
 - Topic Summarization foundation 완료
-- Production summarizer, 핵심 사건 추출, 저장 및 실제 파이프라인 연결 필요
+- Provider-independent Analysis Run orchestration foundation 완료
+- Production detector/summarizer, 핵심 사건 추출, 저장 및 runtime 연결 필요
 
 ## Sprint 10
 

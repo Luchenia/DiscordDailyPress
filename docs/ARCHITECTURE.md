@@ -86,6 +86,27 @@ scope, output language, and explicit unassigned/noise messages.
 No production summarizer, persistence path, bot wiring, or newspaper composition is
 selected yet.
 
+## Analysis-run orchestration foundation
+
+`AnalysisRunService` is the application boundary from an `AnalysisRequestDTO` to
+validated topic summaries. It calls `AnalysisService.prepare_dataset` through
+`asyncio.to_thread`, keeping the existing synchronous SQLite repository layer out
+of a future async caller's event-loop thread. It then invokes the injected
+`TopicDetectionService` and passes that validated result to the injected
+`TopicSummarizationService`.
+
+Every run requires explicit positive message-count and prepared-text character
+limits. The service measures `analysis_content`, rejects an oversized dataset before
+either AI provider is invoked, and does not define production limits, tokens,
+pricing, or batching policy. Analysis-scope repository reads are ordered by
+`created_at` and then Discord message ID.
+
+The provider-independent run result contains dataset metadata, measured input size,
+the applied limits, scope, output language, detector/summarizer identity, validated
+topic summaries with prepared-message provenance, and explicit unassigned/noise
+messages. It does not expose the raw `AnalysisDatasetDTO` to a future newspaper
+composer.
+
 ## Analysis scope and statistics
 
 Collection and analysis are intentionally separate:
@@ -118,6 +139,6 @@ The time contract is:
 - Collection policy and analysis inclusion are separate concerns.
 
 Automatic translation production, current-translation analysis preparation, and
-provider-independent topic detection and summarization contracts are implemented.
-Production topic/summarization providers and AI newspaper generation remain future
-architecture.
+provider-independent topic detection, summarization, and analysis-run orchestration
+contracts are implemented. Production topic/summarization providers and AI
+newspaper generation remain future architecture.

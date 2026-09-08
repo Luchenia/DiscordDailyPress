@@ -33,6 +33,14 @@
 - Preserved analysis scope, detector/summarizer identity, output language, prepared source hashes, translation provenance, and explicit unassigned/noise messages in summary results.
 - Added deterministic topic-message ordering and provider-independent tests without external API calls or persistence changes.
 
+### Analysis-run orchestration foundation
+
+- Added a provider-independent async service that composes prepared analysis datasets through topic detection and topic summarization.
+- Moved synchronous scope resolution, SQLite reads, and translation selection off the future async caller thread with an application-level `asyncio.to_thread` boundary.
+- Added mandatory caller-supplied message-count and prepared-text character limits that reject oversized runs before provider invocation.
+- Ordered analysis-scope messages by creation time and Discord message ID for deterministic provider input.
+- Preserved scope, output language, provider identities, dataset metadata, source hashes, translation provenance, evidence, and explicit unassigned/noise messages in the orchestration result.
+
 ### Development environment
 
 - Declared runtime and test dependencies for the supported Python 3.11 environment.

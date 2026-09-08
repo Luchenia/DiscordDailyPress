@@ -1496,3 +1496,41 @@ Topic 수, hierarchy, clustering threshold, provider 선택, persistence schema�
 
 Production topic detector/summarizer provider, 입력 크기 제한, topic 정책,
 persistence, bot wiring과 newspaper composition은 후속 단계에서 결정한다.
+
+# Boundary-Safe Analysis Run Orchestration Foundation (2026-09-08)
+
+## 구현
+
+- `AnalysisRunRequestDTO`, `AnalysisRunLimitsDTO`, `AnalysisRunResultDTO`를 추가했다.
+- `AnalysisRunService`가 prepared `AnalysisDatasetDTO`를 Topic Detection과 Topic
+  Summarization service에 순차 전달하는 provider-independent 경계를 추가했다.
+- `AnalysisService.prepare_dataset`을 application read boundary로 추가하고
+  orchestration에서는 `asyncio.to_thread`로 호출한다.
+- analysis scope repository query를 `created_at`, Discord message ID 순으로
+  정렬한다.
+- 모든 run은 caller가 positive `max_messages`, `max_total_characters`를 명시해야
+  하며, prepared `analysis_content` 기준 초과 시 provider 호출 전에 거부한다.
+
+## 안전 계약
+
+- orchestration result는 raw `AnalysisDatasetDTO`를 downstream에 노출하지 않는다.
+- scope, output language, detector/summarizer ID, dataset metadata, applied limits,
+  source hash, translation provenance, evidence와 unassigned/noise를 보존한다.
+- contract error는 그대로 전파하며 임의 topic 또는 summary를 만들지 않는다.
+- production limit, token, billing, batching 정책을 선택하지 않는다.
+- provider SDK, 외부 API, bot runtime, persistence, schema와 migration을 변경하지
+  않는다.
+
+## 검증
+
+- Analysis Run orchestration focused tests: 9 passed
+- orchestration + repository ordering focused scope: 15 passed
+- Topic Detection / Topic Summarization / Analysis Translation 회귀: 37 passed
+- 전체 자동화 테스트: 272 passed, 기존 warning 3개
+- fake detector/summarizer만 사용하며 외부 API 호출 없음
+- production Chronicle DB size, mtime, SHA-256 불변 확인
+
+## 남은 결정
+
+Production provider/model, 실제 input limit 값, batching, topic policy, persistence,
+runtime wiring과 newspaper composition은 후속 단계에서 결정한다.

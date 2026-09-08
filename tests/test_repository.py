@@ -330,3 +330,46 @@ def test_get_by_analysis_scope_supports_multiple_channels(
     ]
 
     assert result_ids == [40, 41]
+
+
+def test_get_by_analysis_scope_orders_by_created_at_then_message_identity(
+    test_session_local,
+):
+    repository = MessageRepository()
+    base_time = datetime.now(timezone.utc)
+    messages = [
+        create_message(
+            discord_message_id=73,
+            guild_id=100,
+            channel_id=10,
+            content="나중 메시지",
+            created_at=base_time + timedelta(minutes=1),
+        ),
+        create_message(
+            discord_message_id=72,
+            guild_id=100,
+            channel_id=10,
+            content="같은 시간 높은 ID",
+            created_at=base_time,
+        ),
+        create_message(
+            discord_message_id=71,
+            guild_id=100,
+            channel_id=10,
+            content="같은 시간 낮은 ID",
+            created_at=base_time,
+        ),
+    ]
+
+    with test_session_local() as session:
+        session.add_all(messages)
+        session.commit()
+
+    results = repository.get_by_analysis_scope(
+        guild_id=100,
+        channel_ids=[10],
+        start_at=base_time - timedelta(hours=1),
+        end_at=base_time + timedelta(hours=1),
+    )
+
+    assert [message.discord_message_id for message in results] == [71, 72, 73]

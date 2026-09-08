@@ -62,17 +62,23 @@ class AnalysisService:
         request: AnalysisRequestDTO,
     ) -> StatisticsResultDTO:
 
-        scope = self.scope_resolver.resolve(
-            request,
-        )
-
-        dataset = self.build_dataset(
-            scope,
-            output_language=request.output_language,
-        )
+        dataset = self.prepare_dataset(request)
 
         return self.statistics_service.analyze(
             dataset,
+        )
+
+    def prepare_dataset(
+        self,
+        request: AnalysisRequestDTO,
+    ) -> AnalysisDatasetDTO:
+        """Resolve analysis scope and prepare text for downstream analysis."""
+
+        scope = self.scope_resolver.resolve(request)
+
+        return self.build_dataset(
+            scope,
+            output_language=request.output_language,
         )
 
     def get_messages(
